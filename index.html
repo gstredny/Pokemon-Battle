@@ -40,16 +40,16 @@ const TYPE_DATA = {
 };
 
 const TRAINERS = [
-  { id: 'ash', name: 'Ash', icon: '🧢', color: '#E53935' },
-  { id: 'misty', name: 'Misty', icon: '🧜‍♀️', color: '#1E88E5' },
-  { id: 'brock', name: 'Brock', icon: '👨‍🍳', color: '#8D6E63' },
-  { id: 'gary', name: 'Gary', icon: '😎', color: '#7B1FA2' },
-  { id: 'jessie', name: 'Jessie', icon: '💇‍♀️', color: '#D81B60' },
-  { id: 'james', name: 'James', icon: '💜', color: '#5E35B1' },
-  { id: 'nurse', name: 'Nurse Joy', icon: '👩‍⚕️', color: '#EC407A' },
-  { id: 'jenny', name: 'Officer Jenny', icon: '👮‍♀️', color: '#0288D1' },
-  { id: 'prof', name: 'Prof. Oak', icon: '👨‍🔬', color: '#689F38' },
-  { id: 'giovanni', name: 'Giovanni', icon: '🦹', color: '#424242' },
+  { id: 'ash', name: 'Ash', img: 'ash.png', color: '#E53935' },
+  { id: 'misty', name: 'Misty', img: 'misty.png', color: '#1E88E5' },
+  { id: 'brock', name: 'Brock', img: 'brock.png', color: '#8D6E63' },
+  { id: 'gary', name: 'Gary', img: 'blue.png', color: '#7B1FA2' },
+  { id: 'sabrina', name: 'Sabrina', img: 'sabrina.png', color: '#9C27B0' },
+  { id: 'koga', name: 'Koga', img: 'koga.png', color: '#6A1B9A' },
+  { id: 'lance', name: 'Lance', img: 'lance.png', color: '#D32F2F' },
+  { id: 'erika', name: 'Erika', img: 'erika.png', color: '#4CAF50' },
+  { id: 'prof', name: 'Prof. Oak', img: 'oak.png', color: '#689F38' },
+  { id: 'giovanni', name: 'Giovanni', img: 'giovanni.png', color: '#424242' },
 ];
 
 const STATUS_DATA = {
@@ -1103,14 +1103,9 @@ const HealthBar = ({ current, max }) => {
 
 const PokemonCard = ({ pokemon, selected, onClick, disabled }) => {
   const typeData = TYPE_DATA[pokemon.type];
-  const [imgError, setImgError] = React.useState(false);
   return (
     <div onClick={disabled ? null : onClick} style={{ padding: '4px', borderRadius: '10px', background: selected ? typeData.bg : 'linear-gradient(145deg, #2d2d44, #1a1a2e)', border: selected ? '3px solid #FFD700' : '2px solid #444', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1, textAlign: 'center', transition: 'all 0.2s', transform: selected ? 'scale(1.05)' : 'scale(1)', boxShadow: selected ? '0 0 12px rgba(255,215,0,0.6)' : 'none' }}>
-      {imgError ? (
-        <div style={{ width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>{typeData.icon}</div>
-      ) : (
-        <img src={pokemon.img} alt={pokemon.name} onError={() => setImgError(true)} style={{ width: '56px', height: '56px' }} />
-      )}
+      <img src={pokemon.img} alt={pokemon.name} style={{ width: '56px', height: '56px' }} />
       <div style={{ fontWeight: 'bold', fontSize: '9px', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pokemon.name}</div>
       <div style={{ fontSize: '10px' }}>{typeData.icon}</div>
     </div>
@@ -1120,8 +1115,7 @@ const PokemonCard = ({ pokemon, selected, onClick, disabled }) => {
 const BattlePokemon = ({ pokemon, hp, maxHp, status, statBoosts, shaking, flashing, fainting, isActive }) => {
   const typeData = TYPE_DATA[pokemon.type];
   const statusInfo = status ? STATUS_DATA[status] : null;
-  const [imgError, setImgError] = useState(false);
-  
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', animation: shaking ? 'shake 0.4s ease-in-out' : fainting ? 'faint 0.8s ease-out forwards' : 'none' }}>
       <style>{`
@@ -1137,24 +1131,19 @@ const BattlePokemon = ({ pokemon, hp, maxHp, status, statBoosts, shaking, flashi
           {statBoosts.spd > 0 && <span style={{ background: '#4CAF50', padding: '1px 3px', borderRadius: '3px', color: 'white', fontSize: '8px', fontWeight: 'bold' }}>+{statBoosts.spd}SPD</span>}
         </div>
       )}
-      {!imgError && pokemon.img?.startsWith('http') ? (
-        <img 
-          src={pokemon.img} 
-          alt={pokemon.name}
-          onError={() => setImgError(true)}
-          style={{ 
-            width: '96px', 
-            height: '96px', 
-            objectFit: 'contain',
-            imageRendering: 'pixelated',
-            animation: 'float 2s ease-in-out infinite', 
-            filter: flashing ? 'brightness(3)' : isActive ? 'drop-shadow(0 0 8px #FFD700)' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-            transition: 'filter 0.1s'
-          }} 
-        />
-      ) : (
-        <div style={{ fontSize: '60px', animation: 'float 2s ease-in-out infinite', filter: flashing ? 'brightness(3)' : isActive ? 'drop-shadow(0 0 8px #FFD700)' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))', transition: 'filter 0.1s' }}>{typeData.icon}</div>
-      )}
+      <img
+        src={pokemon.img}
+        alt={pokemon.name}
+        style={{
+          width: '96px',
+          height: '96px',
+          objectFit: 'contain',
+          imageRendering: 'pixelated',
+          animation: 'float 2s ease-in-out infinite',
+          filter: flashing ? 'brightness(3)' : isActive ? 'drop-shadow(0 0 8px #FFD700)' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+          transition: 'filter 0.1s'
+        }}
+      />
       <div style={{ marginTop: '2px', padding: '4px 8px', background: 'linear-gradient(180deg, #2d2d44 0%, #1a1a2e 100%)', borderRadius: '6px', minWidth: '90px', border: `2px solid ${isActive ? '#FFD700' : typeData.color}`, boxShadow: isActive ? '0 0 10px #FFD700' : 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', marginBottom: '3px' }}>
           <span style={{ fontSize: '12px' }}>{typeData.icon}</span>
@@ -1598,7 +1587,7 @@ function PokemonBattle() {
                   boxShadow: isSelected ? `0 0 12px ${trainer.color}` : 'none',
                   transition: 'all 0.2s'
                 }}>
-                  <div style={{ fontSize: '32px' }}>{trainer.icon}</div>
+                  <img src={trainer.img} alt={trainer.name} style={{ width: '48px', height: '48px', imageRendering: 'pixelated' }} />
                   <div style={{ color: 'white', fontWeight: 'bold', fontSize: '11px' }}>{trainer.name}</div>
                 </div>
               );
