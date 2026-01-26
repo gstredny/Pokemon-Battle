@@ -1026,7 +1026,100 @@ const useSound = () => {
     } catch (e) {}
   };
 
-  return { playSound, playAttackSound, playPokemonCry };
+  // 8-bit procedural battle music
+  const battleMusicRef = useRef(null);
+
+  const playBattleMusic = () => {
+    try {
+      const ctx = getCtx();
+      if (battleMusicRef.current) return; // Already playing
+
+      const nodes = [];
+      let isPlaying = true;
+
+      // Simple 4-bar battle theme loop
+      const bassNotes = [110, 110, 147, 147, 165, 165, 147, 147]; // A2, D3, E3, D3
+      const melodyNotes = [440, 494, 523, 494, 440, 392, 440, 494]; // A4, B4, C5, B4, A4, G4, A4, B4
+      const noteDuration = 0.2; // seconds per note
+      const loopDuration = bassNotes.length * noteDuration;
+
+      const scheduleLoop = (startTime) => {
+        if (!isPlaying) return;
+
+        // Bass line (square wave)
+        bassNotes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.08, startTime + i * noteDuration);
+          gain.gain.setValueAtTime(0.08, startTime + i * noteDuration + noteDuration * 0.8);
+          gain.gain.linearRampToValueAtTime(0, startTime + i * noteDuration + noteDuration);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(startTime + i * noteDuration);
+          osc.stop(startTime + i * noteDuration + noteDuration);
+          nodes.push({ osc, gain });
+        });
+
+        // Melody (triangle wave)
+        melodyNotes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.12, startTime + i * noteDuration);
+          gain.gain.setValueAtTime(0.12, startTime + i * noteDuration + noteDuration * 0.6);
+          gain.gain.exponentialRampToValueAtTime(0.01, startTime + i * noteDuration + noteDuration * 0.95);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(startTime + i * noteDuration);
+          osc.stop(startTime + i * noteDuration + noteDuration);
+          nodes.push({ osc, gain });
+        });
+
+        // Rhythm hits (noise bursts on beats 1 and 5)
+        [0, 4].forEach(i => {
+          const noise = createNoise(ctx, noteDuration * 0.15);
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'highpass';
+          filter.frequency.value = 5000;
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.05, startTime + i * noteDuration);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + i * noteDuration + noteDuration * 0.15);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          noise.start(startTime + i * noteDuration);
+          noise.stop(startTime + i * noteDuration + noteDuration * 0.15);
+        });
+
+        // Schedule next loop
+        setTimeout(() => scheduleLoop(ctx.currentTime), loopDuration * 1000 * 0.9);
+      };
+
+      scheduleLoop(ctx.currentTime);
+
+      battleMusicRef.current = {
+        stop: () => {
+          isPlaying = false;
+          nodes.forEach(n => {
+            try { n.osc.stop(); } catch(e) {}
+            try { n.gain.disconnect(); } catch(e) {}
+          });
+          battleMusicRef.current = null;
+        }
+      };
+    } catch (e) { console.error(e); }
+  };
+
+  const stopBattleMusic = () => {
+    if (battleMusicRef.current) {
+      battleMusicRef.current.stop();
+    }
+  };
+
+  return { playSound, playAttackSound, playPokemonCry, playBattleMusic, stopBattleMusic };
 };
 
 // Fullscreen toggle button component
@@ -1034,16 +1127,22 @@ const FullscreenButton = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      const el = document.documentElement;
-      (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen)?.call(el);
-    } else {
-      (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen)?.call(document);
+    try {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
+    } catch (e) {
+      alert("Fullscreen not supported. Add to Home Screen for full experience!");
     }
   };
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    const handler = () => setIsFullscreen(!!document.fullscreenElement || !!document.webkitFullscreenElement);
     document.addEventListener("fullscreenchange", handler);
     document.addEventListener("webkitfullscreenchange", handler);
     return () => {
@@ -1055,31 +1154,59 @@ const FullscreenButton = () => {
   return (
     <button
       onClick={toggleFullscreen}
+      title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
       style={{
         position: "fixed",
         top: "10px",
         right: "10px",
-        width: "36px",
-        height: "36px",
-        background: "rgba(0, 0, 0, 0.5)",
-        border: "1px solid rgba(255, 255, 255, 0.2)",
+        width: "40px",
+        height: "40px",
+        background: "rgba(0, 0, 0, 0.6)",
+        border: "2px solid rgba(255, 255, 255, 0.3)",
         borderRadius: "8px",
         color: "white",
-        fontSize: "20px",
+        fontSize: "22px",
         cursor: "pointer",
         zIndex: 9999,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        transition: "background 0.2s"
+        WebkitTapHighlightColor: "transparent",
+        touchAction: "manipulation"
       }}
-      onMouseEnter={(e) => e.target.style.background = "rgba(0, 0, 0, 0.7)"}
-      onMouseLeave={(e) => e.target.style.background = "rgba(0, 0, 0, 0.5)"}
     >
-      {isFullscreen ? "⊖" : "⊕"}
+      {isFullscreen ? "⛶" : "⛶"}
     </button>
   );
 };
+
+// Back button component for navigation
+const BackButton = ({ onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      position: "fixed",
+      top: "10px",
+      left: "10px",
+      width: "40px",
+      height: "40px",
+      background: "rgba(0, 0, 0, 0.6)",
+      border: "2px solid rgba(255, 255, 255, 0.3)",
+      borderRadius: "8px",
+      color: "white",
+      fontSize: "20px",
+      cursor: "pointer",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      WebkitTapHighlightColor: "transparent",
+      touchAction: "manipulation"
+    }}
+  >
+    ←
+  </button>
+);
 
 // Confetti component
 const Confetti = () => {
@@ -1202,7 +1329,7 @@ const BattlePokemon = ({ pokemon, hp, maxHp, status, statBoosts, shaking, flashi
           objectFit: 'contain',
           imageRendering: 'pixelated',
           animation: 'float 2s ease-in-out infinite',
-          filter: flashing ? 'brightness(3)' : isActive ? 'drop-shadow(0 0 8px #FFD700)' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+          filter: isActive ? 'drop-shadow(0 0 8px #FFD700)' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
           transition: 'filter 0.1s'
         }}
       />
@@ -1296,7 +1423,7 @@ function PokemonBattle() {
   const [showVS, setShowVS] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   
-  const { playSound, playAttackSound, playPokemonCry } = useSound();
+  const { playSound, playAttackSound, playPokemonCry, playBattleMusic, stopBattleMusic } = useSound();
 
   const addFloatingText = (text, color, large = false, side = null) => {
     const id = Date.now() + Math.random();
@@ -1305,7 +1432,13 @@ function PokemonBattle() {
     setTimeout(() => setFloatingTexts(prev => prev.filter(t => t.id !== id)), 1200);
   };
 
+  // Stop music when battle ends
+  useEffect(() => {
+    if (phase === 'gameover') stopBattleMusic();
+  }, [phase]);
+
   const resetGame = () => {
+    stopBattleMusic();
     setPhase('trainer1'); setTrainer1(null); setTrainer2(null);
     setPlayer1Team([]); setPlayer2Team([]); setPlayer1Active(0); setPlayer2Active(0);
     setPlayer1HP([]); setPlayer2HP([]); setPlayer1Status([null,null,null]); setPlayer2Status([null,null,null]);
@@ -1314,6 +1447,13 @@ function PokemonBattle() {
     setPlayer1SleepTurns([0,0,0]); setPlayer2SleepTurns([0,0,0]);
     setTurn(1); setMessage(''); setWinner(null); setAnimating(false); setFloatingTexts([]);
     setShowVS(false); setShowConfetti(false);
+  };
+
+  const goBack = () => {
+    playSound("select");
+    if (phase === "trainer2") { setPhase("trainer1"); setTrainer2(null); }
+    else if (phase === "select1") { setPhase("trainer2"); setPlayer1Team([]); }
+    else if (phase === "select2") { setPhase("select1"); setPlayer2Team([]); }
   };
 
   const selectPokemon = (pokemon, player) => {
@@ -1325,7 +1465,7 @@ function PokemonBattle() {
   };
 
   const startBattle = () => { playSound('vs'); setShowVS(true); };
-  const onVSComplete = () => { setShowVS(false); setPlayer1HP(player1Team.map(p => p.hp)); setPlayer2HP(player2Team.map(p => p.hp)); setPhase('battle'); setMessage(`Battle Start! ${trainer1.name}'s turn!`); };
+  const onVSComplete = () => { setShowVS(false); setPlayer1HP(player1Team.map(p => p.hp)); setPlayer2HP(player2Team.map(p => p.hp)); setPhase('battle'); setMessage(`Battle Start! ${trainer1.name}'s turn!`); playBattleMusic(); };
 
   const handleSwitch = (newIndex) => {
     if (animating) return;
