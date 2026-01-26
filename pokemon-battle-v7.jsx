@@ -1138,13 +1138,6 @@ const BattlePokemon = ({ pokemon, hp, maxHp, status, statBoosts, shaking, flashi
 };
 
 const AttackButton = ({ attack, onClick, disabled, defenderType, slotIndex }) => {
-  const typeData = TYPE_DATA[attack.type] || TYPE_DATA.normal;
-  const isBoost = attack.boostAtk || attack.boostDef || attack.boostSpd;
-  const effectiveness = defenderType ? getEffectiveness(attack.type, defenderType) : 1;
-  const effectivenessLabel = effectiveness > 1 ? '⭐' : effectiveness < 1 && effectiveness > 0 ? '↓' : effectiveness === 0 ? '✖' : '';
-  const effectivenessColor = effectiveness > 1 ? '#FFD700' : effectiveness < 1 ? '#888' : 'transparent';
-  const moveIcon = MOVE_ICONS[attack.name] || typeData.icon;
-  
   const slotColors = [
     { bg: 'linear-gradient(135deg, #E53935 0%, #C62828 100%)', border: '#EF5350' },
     { bg: 'linear-gradient(135deg, #1E88E5 0%, #1565C0 100%)', border: '#42A5F5' },
@@ -1152,46 +1145,10 @@ const AttackButton = ({ attack, onClick, disabled, defenderType, slotIndex }) =>
     { bg: 'linear-gradient(135deg, #FB8C00 0%, #EF6C00 100%)', border: '#FFA726' },
   ];
   const slot = slotColors[slotIndex % 4];
-  
-  // Simple descriptors instead of numbers
-  let descriptor = '';
-  let descriptorIcon = '';
-  if (attack.heal || attack.fullHeal) {
-    descriptor = 'HEAL';
-    descriptorIcon = '💚';
-  } else if (isBoost) {
-    descriptor = 'POWER UP';
-    descriptorIcon = '📈';
-  } else if (attack.power >= 100) {
-    descriptor = 'STRONG!';
-    descriptorIcon = '💪';
-  } else if (attack.power >= 70) {
-    descriptor = 'GOOD';
-    descriptorIcon = '👍';
-  } else if (attack.power > 0) {
-    descriptor = attack.effect ? '' : 'QUICK';
-    descriptorIcon = attack.effect ? '' : '⚡';
-  }
-  
-  // Add risky indicator for low accuracy
-  const isRisky = attack.accuracy < 80 && attack.power > 0;
-  
+
   return (
-    <button onClick={onClick} disabled={disabled} style={{ padding: '6px 8px', fontSize: '11px', fontWeight: 'bold', background: disabled ? '#444' : slot.bg, color: 'white', border: `2px solid ${disabled ? '#555' : slot.border}`, borderRadius: '6px', cursor: disabled ? 'not-allowed' : 'pointer', boxShadow: disabled ? 'none' : '0 2px 5px rgba(0,0,0,0.3)', textShadow: '1px 1px 1px rgba(0,0,0,0.5)', minWidth: '115px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px', position: 'relative' }}>
-      {effectivenessLabel && !disabled && (
-        <div style={{ position: 'absolute', top: '-5px', right: '-3px', background: effectivenessColor, padding: '1px 3px', borderRadius: '4px', fontSize: '8px', fontWeight: 'bold', color: effectiveness > 1 ? '#000' : '#fff' }}>{effectivenessLabel}</div>
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-        <span style={{ fontSize: '14px' }}>{moveIcon}</span>
-        <span>{attack.name}</span>
-      </div>
-      <div style={{ fontSize: '9px', opacity: 0.95, display: 'flex', gap: '3px', alignItems: 'center' }}>
-        {descriptorIcon && <span>{descriptorIcon}</span>}
-        {descriptor && <span>{descriptor}</span>}
-        {attack.effect && <span>{STATUS_DATA[attack.effect]?.icon} {STATUS_DATA[attack.effect]?.name}</span>}
-        {isRisky && <span>🎲 RISKY</span>}
-        <span style={{ fontSize: '9px' }}>{typeData.icon}</span>
-      </div>
+    <button onClick={onClick} disabled={disabled} style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 'bold', background: disabled ? '#444' : slot.bg, color: 'white', border: `2px solid ${disabled ? '#555' : slot.border}`, borderRadius: '6px', cursor: disabled ? 'not-allowed' : 'pointer', boxShadow: disabled ? 'none' : '0 2px 5px rgba(0,0,0,0.3)', textShadow: '1px 1px 1px rgba(0,0,0,0.5)', minWidth: '115px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      {attack.name}
     </button>
   );
 };
