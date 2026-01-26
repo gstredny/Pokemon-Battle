@@ -1148,8 +1148,17 @@ const useSound = () => {
 // Fullscreen toggle button component
 const FullscreenButton = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showIOSHelp, setShowIOSHelp] = useState(false);
+  
+  // Detect iOS
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   const toggleFullscreen = () => {
+    if (isIOS) {
+      setShowIOSHelp(true);
+      return;
+    }
     try {
       if (!document.fullscreenElement && !document.webkitFullscreenElement) {
         const el = document.documentElement;
@@ -1160,7 +1169,7 @@ const FullscreenButton = () => {
         else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
       }
     } catch (e) {
-      alert("Fullscreen not supported. Add to Home Screen for full experience!");
+      setShowIOSHelp(true);
     }
   };
 
@@ -1175,33 +1184,88 @@ const FullscreenButton = () => {
   }, []);
 
   return (
-    <button
-      onClick={toggleFullscreen}
-      title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-      style={{
-        position: "fixed",
-        top: "10px",
-        right: "10px",
-        width: "40px",
-        height: "40px",
-        background: "rgba(0, 0, 0, 0.6)",
-        border: "2px solid rgba(255, 255, 255, 0.3)",
-        borderRadius: "8px",
-        color: "white",
-        fontSize: "22px",
-        cursor: "pointer",
-        zIndex: 9999,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        WebkitTapHighlightColor: "transparent",
-        touchAction: "manipulation"
-      }}
-    >
-      {isFullscreen ? "⤢" : "⤢"}
-    </button>
+    <>
+      <button
+        onClick={toggleFullscreen}
+        title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        style={{
+          position: "fixed",
+          top: "10px",
+          right: "10px",
+          width: "40px",
+          height: "40px",
+          background: "rgba(0, 0, 0, 0.6)",
+          border: "2px solid rgba(255, 255, 255, 0.3)",
+          borderRadius: "8px",
+          color: "white",
+          fontSize: "22px",
+          cursor: "pointer",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          WebkitTapHighlightColor: "transparent",
+          touchAction: "manipulation"
+        }}
+      >
+        {isFullscreen ? "⤢" : "⤢"}
+      </button>
+      {showIOSHelp && (
+        <div 
+          onClick={() => setShowIOSHelp(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.85)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px"
+          }}
+        >
+          <div style={{
+            background: "#1a1a2e",
+            border: "2px solid #4ECDC4",
+            borderRadius: "16px",
+            padding: "24px",
+            maxWidth: "320px",
+            textAlign: "center",
+            color: "white"
+          }}>
+            <div style={{ fontSize: "48px", marginBottom: "16px" }}>📱</div>
+            <h3 style={{ margin: "0 0 12px 0", color: "#4ECDC4" }}>Fullscreen on iOS</h3>
+            <p style={{ margin: "0 0 16px 0", fontSize: "14px", lineHeight: "1.5" }}>
+              iOS doesn't support browser fullscreen. For the best experience:
+            </p>
+            <ol style={{ textAlign: "left", fontSize: "14px", lineHeight: "1.8", paddingLeft: "20px", margin: "0 0 16px 0" }}>
+              <li>Tap the <strong>Share</strong> button (box with arrow)</li>
+              <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+              <li>Open from your home screen</li>
+            </ol>
+            <p style={{ margin: "0 0 16px 0", fontSize: "12px", opacity: 0.7 }}>
+              This runs the app without Safari's address bar!
+            </p>
+            <button 
+              onClick={() => setShowIOSHelp(false)}
+              style={{
+                padding: "10px 24px",
+                background: "#4ECDC4",
+                color: "#1a1a2e",
+                border: "none",
+                borderRadius: "8px",
+                fontWeight: "bold",
+                cursor: "pointer"
+              }}
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
-};
+}};
 
 // Back button component for navigation
 const BackButton = ({ onClick }) => (
