@@ -4,6 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Pokemon Battle</title>
+
+  <!-- PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1a1a2e">
+
+  <!-- PWA Links -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #1a1a2e; min-height: 100vh; }
@@ -1019,6 +1029,58 @@ const useSound = () => {
   return { playSound, playAttackSound, playPokemonCry };
 };
 
+// Fullscreen toggle button component
+const FullscreenButton = () => {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      const el = document.documentElement;
+      (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen)?.call(el);
+    } else {
+      (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen)?.call(document);
+    }
+  };
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    document.addEventListener("webkitfullscreenchange", handler);
+    return () => {
+      document.removeEventListener("fullscreenchange", handler);
+      document.removeEventListener("webkitfullscreenchange", handler);
+    };
+  }, []);
+
+  return (
+    <button
+      onClick={toggleFullscreen}
+      style={{
+        position: "fixed",
+        top: "10px",
+        right: "10px",
+        width: "36px",
+        height: "36px",
+        background: "rgba(0, 0, 0, 0.5)",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+        borderRadius: "8px",
+        color: "white",
+        fontSize: "20px",
+        cursor: "pointer",
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "background 0.2s"
+      }}
+      onMouseEnter={(e) => e.target.style.background = "rgba(0, 0, 0, 0.7)"}
+      onMouseLeave={(e) => e.target.style.background = "rgba(0, 0, 0, 0.5)"}
+    >
+      {isFullscreen ? "⊖" : "⊕"}
+    </button>
+  );
+};
+
 // Confetti component
 const Confetti = () => {
   const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96E6A1', '#DDA0DD'];
@@ -1734,7 +1796,7 @@ function PokemonBattle() {
 }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<PokemonBattle />);
+    root.render(<><FullscreenButton /><PokemonBattle /></>);
   </script>
 </body>
 </html>
