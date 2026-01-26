@@ -16,9 +16,32 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #1a1a2e; min-height: 100vh; }
-    #root { min-height: 100vh; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      touch-action: manipulation;
+      overscroll-behavior: none;
+      background: #1a1a2e;
+    }
+    #root {
+      height: 100dvh;
+      height: var(--vh, 100vh);
+      overflow: auto;
+    }
   </style>
+  <script>
+    // Fix iOS viewport height
+    function setVH() {
+      document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');
+    }
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', setVH);
+    setVH();
+    // Trigger minimal-ui on iOS
+    window.scrollTo(0, 1);
+  </script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -1175,7 +1198,7 @@ const FullscreenButton = () => {
         touchAction: "manipulation"
       }}
     >
-      {isFullscreen ? "⛶" : "⛶"}
+      {isFullscreen ? "⤢" : "⤢"}
     </button>
   );
 };
@@ -1730,7 +1753,7 @@ function PokemonBattle() {
     const otherTrainer = phase === 'trainer1' ? null : trainer1;
     
     return (
-      <div style={{ minHeight: '100vh', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <AnimatedBackground />
         <div style={{ position: 'relative', zIndex: 1, padding: '10px', textAlign: 'center' }}>
           <h2 style={{ color: currentPlayer === 1 ? '#FF6B6B' : '#4ECDC4', fontSize: '20px', margin: '0 0 10px 0' }}>Player {currentPlayer}: Choose Your Trainer!</h2>
@@ -1777,7 +1800,7 @@ function PokemonBattle() {
     const currentTeam = phase === 'select1' ? player1Team : player2Team;
     const otherTeam = phase === 'select1' ? [] : player1Team;
     return (
-      <div style={{ minHeight: '100vh', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <AnimatedBackground />
         <div style={{ position: 'relative', zIndex: 1, padding: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '6px' }}>
@@ -1813,7 +1836,7 @@ function PokemonBattle() {
     const currentTrainer = turn === 1 ? trainer1 : trainer2;
     const defenderType = turn === 1 ? p2Pokemon.type : p1Pokemon.type;
     return (
-      <div style={{ minHeight: '100vh', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column' }}>
         <AnimatedBackground battle />
         {screenFlash && <ScreenFlash color={screenFlash} />}
         {attackAnim && <AttackAnimation type={attackAnim.type} side={attackAnim.side} />}
@@ -1870,7 +1893,7 @@ function PokemonBattle() {
     const loserTrainer = winner === 1 ? trainer2 : winner === 2 ? trainer1 : null;
     const winningTeam = winner === 1 ? player1Team : winner === 2 ? player2Team : [];
     return (
-      <div style={{ minHeight: '100vh', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <AnimatedBackground />
         {showConfetti && <Confetti />}
         <style>{`
