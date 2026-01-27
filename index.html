@@ -1094,11 +1094,21 @@ const useSound = () => {
       const nodes = [];
       let isPlaying = true;
 
-      // Soft retro chiptune — Game Boy RPG style
-      const bassNotes = [131, 131, 98, 98, 110, 110, 87, 87, 131, 131, 98, 98, 110, 110, 98, 98]; // C3, G2, A2, F2 pattern
-      const melodyNotes = [523, 659, 784, 659, 440, 523, 659, 587, 523, 392, 440, 523, 587, 659, 587, 523]; // C major pentatonic phrase
-      const noteDuration = 0.25; // slightly slower tempo
-      const loopDuration = bassNotes.length * noteDuration; // 4s loop
+      // Soft retro chiptune — Game Boy RPG style (A + B section)
+      const bassNotes = [
+        // A section: C - G - Am - F
+        131, 131, 131, 131, 98, 98, 98, 98, 110, 110, 110, 110, 87, 87, 87, 87,
+        // B section: C - G - F - G
+        131, 131, 131, 131, 98, 98, 98, 98, 87, 87, 87, 87, 98, 98, 98, 98
+      ];
+      const melodyNotes = [
+        // A section: rising, playful
+        523, 659, 784, 659, 392, 440, 523, 494, 440, 523, 659, 523, 349, 440, 523, 440,
+        // B section: resolving, gentler
+        523, 494, 440, 523, 392, 440, 494, 440, 349, 392, 440, 523, 494, 523, 659, 523
+      ];
+      const noteDuration = 0.25;
+      const loopDuration = bassNotes.length * noteDuration; // 8s loop
 
       const scheduleLoop = (startTime) => {
         if (!isPlaying) return;
@@ -1135,8 +1145,8 @@ const useSound = () => {
           nodes.push({ osc, gain });
         });
 
-        // Light rhythm taps on beats 1, 5, 9, 13 (every 1s)
-        [0, 4, 8, 12].forEach(i => {
+        // Light rhythm taps every 1s across both sections
+        [0, 4, 8, 12, 16, 20, 24, 28].forEach(i => {
           const noise = createNoise(ctx, noteDuration * 0.12);
           const filter = ctx.createBiquadFilter();
           filter.type = 'highpass';
