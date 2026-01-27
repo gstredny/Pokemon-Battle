@@ -62,13 +62,16 @@
         height: 20px !important;
       }
       .pokemon-grid {
-        grid-template-columns: repeat(14, minmax(55px, 1fr)) !important;
         grid-template-rows: repeat(2, 1fr) !important;
+        grid-template-columns: unset !important;
+        grid-auto-columns: minmax(55px, 1fr) !important;
+        grid-auto-flow: column !important;
         overflow-x: auto !important;
         overflow-y: hidden !important;
         max-width: 100% !important;
         gap: 2px !important;
         flex: 1;
+        min-height: 0;
         align-content: center;
       }
       .pokemon-card-compact {
@@ -91,6 +94,15 @@
       }
       .select-bottom-bar {
         padding: 3px !important;
+      }
+    }
+    @media (min-height: 501px) {
+      .pokemon-grid {
+        grid-template-rows: repeat(3, 1fr) !important;
+      }
+      .pokemon-card-compact img {
+        width: 48px !important;
+        height: 48px !important;
       }
     }
   </style>
@@ -1987,7 +1999,7 @@ function PokemonBattle() {
               </div>
             </div>
           </div>
-          <div className="pokemon-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px', maxWidth: '750px', margin: '0 auto' }}>
+          <div className="pokemon-grid" style={{ display: 'grid', gridTemplateRows: 'repeat(3, 1fr)', gridAutoFlow: 'column', gridAutoColumns: 'minmax(70px, 1fr)', gap: '3px', overflowX: 'auto', overflowY: 'hidden', flex: 1, minHeight: 0, alignContent: 'center', maxWidth: '100%', margin: '0 auto' }}>
             {POKEMON.map(pokemon => <PokemonCard key={pokemon.id} pokemon={pokemon} selected={currentTeam.find(p => p.id === pokemon.id)} disabled={otherTeam.find(p => p.id === pokemon.id)} onClick={() => selectPokemon(pokemon, currentPlayer)} />)}
           </div>
           {currentTeam.length === 3 && (
