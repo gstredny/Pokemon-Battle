@@ -1324,7 +1324,7 @@ const HealthBar = ({ current, max }) => {
 const PokemonCard = ({ pokemon, selected, onClick, disabled }) => {
   const typeData = TYPE_DATA[pokemon.type];
   return (
-    <div onClick={disabled ? null : onClick} style={{ padding: '4px', borderRadius: '10px', background: selected ? typeData.bg : 'linear-gradient(145deg, #2d2d44, #1a1a2e)', border: selected ? '3px solid #FFD700' : '2px solid #444', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1, textAlign: 'center', transition: 'all 0.2s', transform: selected ? 'scale(1.05)' : 'scale(1)', boxShadow: selected ? '0 0 12px rgba(255,215,0,0.6)' : 'none' }}>
+    <div onClick={disabled ? null : onClick} style={{ padding: '4px', borderRadius: '10px', background: selected ? typeData.bg : 'linear-gradient(145deg, #2d2d44, #1a1a2e)', border: selected ? '3px solid #FFD700' : '2px solid #444', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1, textAlign: 'center', transition: 'all 0.2s', transform: selected ? 'scale(1.05)' : 'scale(1)', boxShadow: selected ? '0 0 12px rgba(255,215,0,0.6)' : 'none', maxHeight: '85px' }}>
       <img src={pokemon.img} alt={pokemon.name} style={{ width: '56px', height: '56px' }} />
       <div style={{ fontWeight: 'bold', fontSize: '9px', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pokemon.name}</div>
       <div style={{ fontSize: '10px' }}>{typeData.icon}</div>
@@ -1810,7 +1810,7 @@ function PokemonBattle() {
     return (
       <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <AnimatedBackground />
-        <div style={{ position: 'relative', zIndex: 1, padding: '8px' }}>
+        <div style={{ position: 'relative', zIndex: 1, padding: '8px', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: `${currentTrainer.color}33`, padding: '5px 10px', borderRadius: '8px', border: `2px solid ${currentTrainer.color}` }}>
               <span style={{ fontSize: '22px' }}>{currentTrainer.icon}</span>
@@ -1819,7 +1819,7 @@ function PokemonBattle() {
                 {[0, 1, 2].map(i => {
                   const p = currentTeam[i];
                   const typeData = p ? TYPE_DATA[p.type] : null;
-                  return <div key={i} style={{ width: '36px', height: '36px', borderRadius: '50%', border: `2px dashed ${p ? typeData.color : '#666'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: p ? `${typeData.color}33` : 'transparent', overflow: 'hidden' }}>{p ? <img src={p.img} alt={p.name} style={{ width: '32px', height: '32px' }} /> : '?'}</div>;
+                  return <div key={i} style={{ width: '28px', height: '28px', borderRadius: '50%', border: `2px dashed ${p ? typeData.color : '#666'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: p ? `${typeData.color}33` : 'transparent', overflow: 'hidden' }}>{p ? <img src={p.img} alt={p.name} style={{ width: '24px', height: '24px' }} /> : '?'}</div>;
                 })}
               </div>
             </div>
@@ -1829,7 +1829,7 @@ function PokemonBattle() {
               </button>
             )}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px', maxWidth: '750px', margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '3px', margin: '0 auto', gridAutoRows: 'min-content' }}>
             {POKEMON.map(pokemon => <PokemonCard key={pokemon.id} pokemon={pokemon} selected={currentTeam.find(p => p.id === pokemon.id)} disabled={otherTeam.find(p => p.id === pokemon.id)} onClick={() => selectPokemon(pokemon, currentPlayer)} />)}
           </div>
         </div>
