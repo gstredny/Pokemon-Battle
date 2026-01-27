@@ -1324,7 +1324,7 @@ const HealthBar = ({ current, max }) => {
 const PokemonCard = ({ pokemon, selected, onClick, disabled }) => {
   const typeData = TYPE_DATA[pokemon.type];
   return (
-    <div onClick={disabled ? null : onClick} style={{ padding: '4px', borderRadius: '10px', background: selected ? typeData.bg : 'linear-gradient(145deg, #2d2d44, #1a1a2e)', border: selected ? '3px solid #FFD700' : '2px solid #444', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1, textAlign: 'center', transition: 'all 0.2s', transform: selected ? 'scale(1.05)' : 'scale(1)', boxShadow: selected ? '0 0 12px rgba(255,215,0,0.6)' : 'none', maxHeight: '85px' }}>
+    <div onClick={disabled ? null : onClick} style={{ padding: '4px', borderRadius: '10px', background: selected ? typeData.bg : 'linear-gradient(145deg, #2d2d44, #1a1a2e)', border: selected ? '3px solid #FFD700' : '2px solid #444', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1, textAlign: 'center', transition: 'all 0.2s', transform: selected ? 'scale(1.05)' : 'scale(1)', boxShadow: selected ? '0 0 12px rgba(255,215,0,0.6)' : 'none', maxHeight: '95px' }}>
       <img src={pokemon.img} alt={pokemon.name} style={{ width: '56px', height: '56px' }} />
       <div style={{ fontWeight: 'bold', fontSize: '9px', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pokemon.name}</div>
       <div style={{ fontSize: '10px' }}>{typeData.icon}</div>
