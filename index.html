@@ -47,7 +47,38 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div id="loading-fallback" style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1a1a2e; color: white; font-family: 'Segoe UI', sans-serif;">
+      <div style="font-size: 48px; margin-bottom: 20px;">⚡</div>
+      <div style="font-size: 20px; margin-bottom: 10px;">Loading Pokemon Battle...</div>
+      <div style="font-size: 14px; color: #888;">If this takes too long, try refreshing the page</div>
+    </div>
+  </div>
+  <script>
+    // Error handling for CDN failures
+    window.onerror = function(msg, url, line) {
+      var root = document.getElementById('root');
+      if (root) {
+        root.innerHTML = '<div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1a1a2e; color: white; font-family: sans-serif; padding: 20px; text-align: center;">' +
+          '<div style="font-size: 48px; margin-bottom: 20px;">😵</div>' +
+          '<div style="font-size: 20px; margin-bottom: 10px; color: #FF6B6B;">Failed to load game</div>' +
+          '<div style="font-size: 14px; color: #888; margin-bottom: 20px;">Error: ' + msg + '</div>' +
+          '<button onclick="location.reload()" style="padding: 12px 24px; font-size: 16px; background: #4ECDC4; color: #1a1a2e; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Retry</button>' +
+          '</div>';
+      }
+      return false;
+    };
+    // Timeout fallback - if app doesn't load in 10 seconds, show error
+    window.appLoadTimeout = setTimeout(function() {
+      var fallback = document.getElementById('loading-fallback');
+      if (fallback) {
+        fallback.innerHTML = '<div style="font-size: 48px; margin-bottom: 20px;">⏳</div>' +
+          '<div style="font-size: 20px; margin-bottom: 10px; color: #FFD700;">Taking longer than expected...</div>' +
+          '<div style="font-size: 14px; color: #888; margin-bottom: 20px;">The game resources may be slow to load.<br>Please wait or try refreshing.</div>' +
+          '<button onclick="location.reload()" style="padding: 12px 24px; font-size: 16px; background: #4ECDC4; color: #1a1a2e; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Refresh</button>';
+      }
+    }, 10000);
+  </script>
   <script type="text/babel">
     const { useState, useRef, useEffect } = React;
 
@@ -73,17 +104,20 @@ const TYPE_DATA = {
 };
 
 const TRAINERS = [
-  { id: 'ash', name: 'Ash', img: 'ash.png', color: '#E53935' },
-  { id: 'misty', name: 'Misty', img: 'misty.png', color: '#1E88E5' },
-  { id: 'brock', name: 'Brock', img: 'brock.png', color: '#8D6E63' },
-  { id: 'gary', name: 'Gary', img: 'blue.png', color: '#7B1FA2' },
-  { id: 'sabrina', name: 'Sabrina', img: 'sabrina.png', color: '#9C27B0' },
-  { id: 'koga', name: 'Koga', img: 'koga.png', color: '#6A1B9A' },
-  { id: 'lance', name: 'Lance', img: 'lance.png', color: '#D32F2F' },
-  { id: 'erika', name: 'Erika', img: 'erika.png', color: '#4CAF50' },
-  { id: 'prof', name: 'Prof. Oak', img: 'oak.png', color: '#689F38' },
-  { id: 'giovanni', name: 'Giovanni', img: 'giovanni.png', color: '#424242' },
+  { id: 'ash', name: 'Ash', img: 'ash.png', icon: '⚡', color: '#E53935' },
+  { id: 'misty', name: 'Misty', img: 'misty.png', icon: '💧', color: '#1E88E5' },
+  { id: 'brock', name: 'Brock', img: 'brock.png', icon: '🪨', color: '#8D6E63' },
+  { id: 'gary', name: 'Gary', img: 'blue.png', icon: '🔥', color: '#7B1FA2' },
+  { id: 'sabrina', name: 'Sabrina', img: 'sabrina.png', icon: '🔮', color: '#9C27B0' },
+  { id: 'koga', name: 'Koga', img: 'koga.png', icon: '☠️', color: '#6A1B9A' },
+  { id: 'lance', name: 'Lance', img: 'lance.png', icon: '🐉', color: '#D32F2F' },
+  { id: 'erika', name: 'Erika', img: 'erika.png', icon: '🌿', color: '#4CAF50' },
+  { id: 'prof', name: 'Prof. Oak', img: 'oak.png', icon: '📚', color: '#689F38' },
+  { id: 'giovanni', name: 'Giovanni', img: 'giovanni.png', icon: '😈', color: '#424242' },
 ];
+
+// Clear loading timeout when app initializes
+if (window.appLoadTimeout) clearTimeout(window.appLoadTimeout);
 
 const STATUS_DATA = {
   burn: { icon: '🔥', color: '#FF6B35', name: 'BURNED' },
@@ -2022,8 +2056,24 @@ function PokemonBattle() {
   }
 }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<><FullscreenButton /><PokemonBattle /></>);
+    // Initialize React app with error handling
+    try {
+      const rootElement = document.getElementById('root');
+      if (!rootElement) throw new Error('Root element not found');
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(<><FullscreenButton /><PokemonBattle /></>);
+    } catch (err) {
+      console.error('Failed to initialize app:', err);
+      const root = document.getElementById('root');
+      if (root) {
+        root.innerHTML = '<div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1a1a2e; color: white; font-family: sans-serif; padding: 20px; text-align: center;">' +
+          '<div style="font-size: 48px; margin-bottom: 20px;">😵</div>' +
+          '<div style="font-size: 20px; margin-bottom: 10px; color: #FF6B6B;">Failed to start game</div>' +
+          '<div style="font-size: 14px; color: #888; margin-bottom: 20px;">' + err.message + '</div>' +
+          '<button onclick="location.reload()" style="padding: 12px 24px; font-size: 16px; background: #4ECDC4; color: #1a1a2e; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Retry</button>' +
+          '</div>';
+      }
+    }
   </script>
 </body>
 </html>
