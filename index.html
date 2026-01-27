@@ -1083,7 +1083,7 @@ const useSound = () => {
     } catch (e) {}
   };
 
-  // 8-bit procedural battle music
+  // Soft retro chiptune battle music
   const battleMusicRef = useRef(null);
 
   const playBattleMusic = () => {
@@ -1094,23 +1094,23 @@ const useSound = () => {
       const nodes = [];
       let isPlaying = true;
 
-      // Simple 4-bar battle theme loop
-      const bassNotes = [110, 110, 147, 147, 165, 165, 147, 147]; // A2, D3, E3, D3
-      const melodyNotes = [440, 494, 523, 494, 440, 392, 440, 494]; // A4, B4, C5, B4, A4, G4, A4, B4
-      const noteDuration = 0.2; // seconds per note
-      const loopDuration = bassNotes.length * noteDuration;
+      // Soft retro chiptune — Game Boy RPG style
+      const bassNotes = [131, 131, 98, 98, 110, 110, 87, 87, 131, 131, 98, 98, 110, 110, 98, 98]; // C3, G2, A2, F2 pattern
+      const melodyNotes = [523, 659, 784, 659, 440, 523, 659, 587, 523, 392, 440, 523, 587, 659, 587, 523]; // C major pentatonic phrase
+      const noteDuration = 0.25; // slightly slower tempo
+      const loopDuration = bassNotes.length * noteDuration; // 4s loop
 
       const scheduleLoop = (startTime) => {
         if (!isPlaying) return;
 
-        // Bass line (square wave)
+        // Bass line (triangle wave — softer than square)
         bassNotes.forEach((freq, i) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'square';
+          osc.type = 'triangle';
           osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.08, startTime + i * noteDuration);
-          gain.gain.setValueAtTime(0.08, startTime + i * noteDuration + noteDuration * 0.8);
+          gain.gain.setValueAtTime(0.04, startTime + i * noteDuration);
+          gain.gain.setValueAtTime(0.04, startTime + i * noteDuration + noteDuration * 0.8);
           gain.gain.linearRampToValueAtTime(0, startTime + i * noteDuration + noteDuration);
           osc.connect(gain);
           gain.connect(ctx.destination);
@@ -1119,14 +1119,14 @@ const useSound = () => {
           nodes.push({ osc, gain });
         });
 
-        // Melody (triangle wave)
+        // Melody (triangle wave, gentle)
         melodyNotes.forEach((freq, i) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'triangle';
           osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.12, startTime + i * noteDuration);
-          gain.gain.setValueAtTime(0.12, startTime + i * noteDuration + noteDuration * 0.6);
+          gain.gain.setValueAtTime(0.06, startTime + i * noteDuration);
+          gain.gain.setValueAtTime(0.06, startTime + i * noteDuration + noteDuration * 0.6);
           gain.gain.exponentialRampToValueAtTime(0.01, startTime + i * noteDuration + noteDuration * 0.95);
           osc.connect(gain);
           gain.connect(ctx.destination);
@@ -1135,20 +1135,20 @@ const useSound = () => {
           nodes.push({ osc, gain });
         });
 
-        // Rhythm hits (noise bursts on beats 1 and 5)
-        [0, 4].forEach(i => {
-          const noise = createNoise(ctx, noteDuration * 0.15);
+        // Light rhythm taps on beats 1, 5, 9, 13 (every 1s)
+        [0, 4, 8, 12].forEach(i => {
+          const noise = createNoise(ctx, noteDuration * 0.12);
           const filter = ctx.createBiquadFilter();
           filter.type = 'highpass';
-          filter.frequency.value = 5000;
+          filter.frequency.value = 6000;
           const gain = ctx.createGain();
-          gain.gain.setValueAtTime(0.05, startTime + i * noteDuration);
-          gain.gain.exponentialRampToValueAtTime(0.001, startTime + i * noteDuration + noteDuration * 0.15);
+          gain.gain.setValueAtTime(0.02, startTime + i * noteDuration);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + i * noteDuration + noteDuration * 0.12);
           noise.connect(filter);
           filter.connect(gain);
           gain.connect(ctx.destination);
           noise.start(startTime + i * noteDuration);
-          noise.stop(startTime + i * noteDuration + noteDuration * 0.15);
+          noise.stop(startTime + i * noteDuration + noteDuration * 0.12);
         });
 
         // Schedule next loop
