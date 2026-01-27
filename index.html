@@ -63,13 +63,11 @@
       }
       .pokemon-grid {
         grid-template-rows: repeat(2, 1fr) !important;
-        grid-template-columns: unset !important;
-        grid-auto-columns: minmax(55px, 1fr) !important;
+        grid-template-columns: repeat(19, 1fr) !important;
         grid-auto-flow: column !important;
-        overflow-x: auto !important;
-        overflow-y: hidden !important;
+        overflow: hidden !important;
         max-width: 100% !important;
-        gap: 2px !important;
+        gap: 1px !important;
         flex: 1;
         min-height: 0;
         align-content: center;
@@ -79,14 +77,12 @@
         border-radius: 6px !important;
       }
       .pokemon-card-compact img {
-        width: 36px !important;
-        height: 36px !important;
+        width: auto !important;
+        height: calc((var(--vh, 100vh) - 70px) / 2 - 16px) !important;
       }
       .pokemon-card-compact .poke-name {
-        font-size: 7px !important;
-      }
-      .pokemon-card-compact .poke-type {
-        font-size: 8px !important;
+        font-size: 6px !important;
+        line-height: 1 !important;
       }
       .select-battle-btn {
         padding: 4px 12px !important;
@@ -1158,108 +1154,8 @@ const useSound = () => {
     } catch (e) {}
   };
 
-  // Soft retro chiptune battle music
-  const battleMusicRef = useRef(null);
-
-  const playBattleMusic = () => {
-    try {
-      const ctx = getCtx();
-      if (battleMusicRef.current) return; // Already playing
-
-      const nodes = [];
-      let isPlaying = true;
-
-      // Soft retro chiptune — Game Boy RPG style (A + B section)
-      const bassNotes = [
-        // A section: C - G - Am - F
-        131, 131, 131, 131, 98, 98, 98, 98, 110, 110, 110, 110, 87, 87, 87, 87,
-        // B section: C - G - F - G
-        131, 131, 131, 131, 98, 98, 98, 98, 87, 87, 87, 87, 98, 98, 98, 98
-      ];
-      const melodyNotes = [
-        // A section: rising, playful
-        523, 659, 784, 659, 392, 440, 523, 494, 440, 523, 659, 523, 349, 440, 523, 440,
-        // B section: resolving, gentler
-        523, 494, 440, 523, 392, 440, 494, 440, 349, 392, 440, 523, 494, 523, 659, 523
-      ];
-      const noteDuration = 0.25;
-      const loopDuration = bassNotes.length * noteDuration; // 8s loop
-
-      const scheduleLoop = (startTime) => {
-        if (!isPlaying) return;
-
-        // Bass line (triangle wave — softer than square)
-        bassNotes.forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.04, startTime + i * noteDuration);
-          gain.gain.setValueAtTime(0.04, startTime + i * noteDuration + noteDuration * 0.8);
-          gain.gain.linearRampToValueAtTime(0, startTime + i * noteDuration + noteDuration);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(startTime + i * noteDuration);
-          osc.stop(startTime + i * noteDuration + noteDuration);
-          nodes.push({ osc, gain });
-        });
-
-        // Melody (triangle wave, gentle)
-        melodyNotes.forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.06, startTime + i * noteDuration);
-          gain.gain.setValueAtTime(0.06, startTime + i * noteDuration + noteDuration * 0.6);
-          gain.gain.exponentialRampToValueAtTime(0.01, startTime + i * noteDuration + noteDuration * 0.95);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(startTime + i * noteDuration);
-          osc.stop(startTime + i * noteDuration + noteDuration);
-          nodes.push({ osc, gain });
-        });
-
-        // Light rhythm taps every 1s across both sections
-        [0, 4, 8, 12, 16, 20, 24, 28].forEach(i => {
-          const noise = createNoise(ctx, noteDuration * 0.12);
-          const filter = ctx.createBiquadFilter();
-          filter.type = 'highpass';
-          filter.frequency.value = 6000;
-          const gain = ctx.createGain();
-          gain.gain.setValueAtTime(0.02, startTime + i * noteDuration);
-          gain.gain.exponentialRampToValueAtTime(0.001, startTime + i * noteDuration + noteDuration * 0.12);
-          noise.connect(filter);
-          filter.connect(gain);
-          gain.connect(ctx.destination);
-          noise.start(startTime + i * noteDuration);
-          noise.stop(startTime + i * noteDuration + noteDuration * 0.12);
-        });
-
-        // Schedule next loop
-        setTimeout(() => scheduleLoop(ctx.currentTime), loopDuration * 1000 * 0.9);
-      };
-
-      scheduleLoop(ctx.currentTime);
-
-      battleMusicRef.current = {
-        stop: () => {
-          isPlaying = false;
-          nodes.forEach(n => {
-            try { n.osc.stop(); } catch(e) {}
-            try { n.gain.disconnect(); } catch(e) {}
-          });
-          battleMusicRef.current = null;
-        }
-      };
-    } catch (e) { console.error(e); }
-  };
-
-  const stopBattleMusic = () => {
-    if (battleMusicRef.current) {
-      battleMusicRef.current.stop();
-    }
-  };
+  const playBattleMusic = () => {};
+  const stopBattleMusic = () => {};
 
   return { playSound, playAttackSound, playPokemonCry, playBattleMusic, stopBattleMusic };
 };
@@ -1499,10 +1395,9 @@ const HealthBar = ({ current, max }) => {
 const PokemonCard = ({ pokemon, selected, onClick, disabled }) => {
   const typeData = TYPE_DATA[pokemon.type];
   return (
-    <div className="pokemon-card-compact" onClick={disabled ? null : onClick} style={{ padding: '4px', borderRadius: '10px', background: selected ? typeData.bg : 'linear-gradient(145deg, #2d2d44, #1a1a2e)', border: selected ? '3px solid #FFD700' : '2px solid #444', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1, textAlign: 'center', transition: 'all 0.2s', transform: selected ? 'scale(1.05)' : 'scale(1)', boxShadow: selected ? '0 0 12px rgba(255,215,0,0.6)' : 'none' }}>
-      <img src={pokemon.img} alt={pokemon.name} style={{ width: '56px', height: '56px' }} />
+    <div className="pokemon-card-compact" onClick={disabled ? null : onClick} style={{ padding: '2px', borderRadius: '10px', background: selected ? typeData.bg : 'linear-gradient(145deg, #2d2d44, #1a1a2e)', border: selected ? '2px solid #FFD700' : '1px solid #444', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1, textAlign: 'center', transition: 'all 0.2s', transform: selected ? 'scale(1.05)' : 'scale(1)', boxShadow: selected ? '0 0 12px rgba(255,215,0,0.6)' : 'none' }}>
+      <img src={pokemon.img} alt={pokemon.name} style={{ width: '48px', height: '48px' }} />
       <div className="poke-name" style={{ fontWeight: 'bold', fontSize: '9px', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pokemon.name}</div>
-      <div className="poke-type" style={{ fontSize: '10px' }}>{typeData.icon}</div>
     </div>
   );
 };
