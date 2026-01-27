@@ -30,77 +30,6 @@
       height: var(--vh, 100vh);
       overflow: auto;
     }
-
-    /* Landscape mobile: compact selection screen */
-    @media (max-height: 500px) {
-      .select-container {
-        height: var(--vh, 100vh) !important;
-        overflow: hidden !important;
-        justify-content: flex-start !important;
-        padding: 4px !important;
-      }
-      .select-header {
-        margin-bottom: 2px !important;
-        padding: 2px 6px !important;
-        gap: 4px !important;
-      }
-      .select-header .trainer-badge {
-        padding: 2px 6px !important;
-      }
-      .select-header .trainer-icon {
-        font-size: 16px !important;
-      }
-      .select-header .trainer-name {
-        font-size: 11px !important;
-      }
-      .select-header .team-slot {
-        width: 24px !important;
-        height: 24px !important;
-      }
-      .select-header .team-slot img {
-        width: 20px !important;
-        height: 20px !important;
-      }
-      .pokemon-grid {
-        grid-template-rows: repeat(2, 1fr) !important;
-        grid-template-columns: repeat(19, 1fr) !important;
-        grid-auto-flow: column !important;
-        overflow: hidden !important;
-        max-width: 100% !important;
-        gap: 1px !important;
-        flex: 1;
-        min-height: 0;
-        align-content: center;
-      }
-      .pokemon-card-compact {
-        padding: 2px !important;
-        border-radius: 6px !important;
-      }
-      .pokemon-card-compact img {
-        width: auto !important;
-        height: calc((var(--vh, 100vh) - 70px) / 2 - 16px) !important;
-      }
-      .pokemon-card-compact .poke-name {
-        font-size: 6px !important;
-        line-height: 1 !important;
-      }
-      .select-battle-btn {
-        padding: 4px 12px !important;
-        font-size: 12px !important;
-      }
-      .select-bottom-bar {
-        padding: 3px !important;
-      }
-    }
-    @media (min-height: 501px) {
-      .pokemon-grid {
-        grid-template-rows: repeat(3, 1fr) !important;
-      }
-      .pokemon-card-compact img {
-        width: 48px !important;
-        height: 48px !important;
-      }
-    }
   </style>
   <script>
     // Fix iOS viewport height
@@ -1395,9 +1324,10 @@ const HealthBar = ({ current, max }) => {
 const PokemonCard = ({ pokemon, selected, onClick, disabled }) => {
   const typeData = TYPE_DATA[pokemon.type];
   return (
-    <div className="pokemon-card-compact" onClick={disabled ? null : onClick} style={{ padding: '2px', borderRadius: '10px', background: selected ? typeData.bg : 'linear-gradient(145deg, #2d2d44, #1a1a2e)', border: selected ? '2px solid #FFD700' : '1px solid #444', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1, textAlign: 'center', transition: 'all 0.2s', transform: selected ? 'scale(1.05)' : 'scale(1)', boxShadow: selected ? '0 0 12px rgba(255,215,0,0.6)' : 'none' }}>
-      <img src={pokemon.img} alt={pokemon.name} style={{ width: '48px', height: '48px' }} />
-      <div className="poke-name" style={{ fontWeight: 'bold', fontSize: '9px', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pokemon.name}</div>
+    <div onClick={disabled ? null : onClick} style={{ padding: '4px', borderRadius: '10px', background: selected ? typeData.bg : 'linear-gradient(145deg, #2d2d44, #1a1a2e)', border: selected ? '3px solid #FFD700' : '2px solid #444', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1, textAlign: 'center', transition: 'all 0.2s', transform: selected ? 'scale(1.05)' : 'scale(1)', boxShadow: selected ? '0 0 12px rgba(255,215,0,0.6)' : 'none' }}>
+      <img src={pokemon.img} alt={pokemon.name} style={{ width: '56px', height: '56px' }} />
+      <div style={{ fontWeight: 'bold', fontSize: '9px', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pokemon.name}</div>
+      <div style={{ fontSize: '10px' }}>{typeData.icon}</div>
     </div>
   );
 };
@@ -1878,32 +1808,30 @@ function PokemonBattle() {
     const currentTeam = phase === 'select1' ? player1Team : player2Team;
     const otherTeam = phase === 'select1' ? [] : player1Team;
     return (
-      <div className="select-container" style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <AnimatedBackground />
-        <div style={{ position: 'relative', zIndex: 1, padding: '8px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <div className="select-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '6px' }}>
-            <div className="trainer-badge" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: `${currentTrainer.color}33`, padding: '5px 10px', borderRadius: '8px', border: `2px solid ${currentTrainer.color}` }}>
-              <span className="trainer-icon" style={{ fontSize: '22px' }}>{currentTrainer.icon}</span>
-              <span className="trainer-name" style={{ color: currentTrainer.color, fontSize: '14px', fontWeight: 'bold' }}>{currentTrainer.name}</span>
+        <div style={{ position: 'relative', zIndex: 1, padding: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: `${currentTrainer.color}33`, padding: '5px 10px', borderRadius: '8px', border: `2px solid ${currentTrainer.color}` }}>
+              <span style={{ fontSize: '22px' }}>{currentTrainer.icon}</span>
+              <span style={{ color: currentTrainer.color, fontSize: '14px', fontWeight: 'bold' }}>{currentTrainer.name}</span>
               <div style={{ display: 'flex', gap: '3px', marginLeft: '6px' }}>
                 {[0, 1, 2].map(i => {
                   const p = currentTeam[i];
                   const typeData = p ? TYPE_DATA[p.type] : null;
-                  return <div className="team-slot" key={i} style={{ width: '36px', height: '36px', borderRadius: '50%', border: `2px dashed ${p ? typeData.color : '#666'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: p ? `${typeData.color}33` : 'transparent', overflow: 'hidden' }}>{p ? <img src={p.img} alt={p.name} style={{ width: '32px', height: '32px' }} /> : '?'}</div>;
+                  return <div key={i} style={{ width: '36px', height: '36px', borderRadius: '50%', border: `2px dashed ${p ? typeData.color : '#666'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: p ? `${typeData.color}33` : 'transparent', overflow: 'hidden' }}>{p ? <img src={p.img} alt={p.name} style={{ width: '32px', height: '32px' }} /> : '?'}</div>;
                 })}
               </div>
             </div>
-          </div>
-          <div className="pokemon-grid" style={{ display: 'grid', gridTemplateRows: 'repeat(3, 1fr)', gridAutoFlow: 'column', gridAutoColumns: 'minmax(70px, 1fr)', gap: '3px', overflowX: 'auto', overflowY: 'hidden', flex: 1, minHeight: 0, alignContent: 'center', maxWidth: '100%', margin: '0 auto' }}>
-            {POKEMON.map(pokemon => <PokemonCard key={pokemon.id} pokemon={pokemon} selected={currentTeam.find(p => p.id === pokemon.id)} disabled={otherTeam.find(p => p.id === pokemon.id)} onClick={() => selectPokemon(pokemon, currentPlayer)} />)}
-          </div>
-          {currentTeam.length === 3 && (
-            <div className="select-bottom-bar" style={{ textAlign: 'center', padding: '6px' }}>
-              <button className="select-battle-btn" onClick={() => { playSound('select'); phase === 'select1' ? setPhase('select2') : startBattle(); }} style={{ padding: '8px 20px', fontSize: '14px', fontWeight: 'bold', background: 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)', color: 'white', border: '2px solid #81C784', borderRadius: '8px', cursor: 'pointer' }}>
+            {currentTeam.length === 3 && (
+              <button onClick={() => { playSound('select'); phase === 'select1' ? setPhase('select2') : startBattle(); }} style={{ padding: '8px 20px', fontSize: '14px', fontWeight: 'bold', background: 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)', color: 'white', border: '2px solid #81C784', borderRadius: '8px', cursor: 'pointer' }}>
                 {phase === 'select1' ? <><img src={trainer2.img} alt={trainer2.name} style={{ width: '16px', height: '16px', verticalAlign: 'middle', imageRendering: 'pixelated' }} /> {trainer2.name}'s Turn →</> : "⚔️ BATTLE!"}
               </button>
-            </div>
-          )}
+            )}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px', maxWidth: '750px', margin: '0 auto' }}>
+            {POKEMON.map(pokemon => <PokemonCard key={pokemon.id} pokemon={pokemon} selected={currentTeam.find(p => p.id === pokemon.id)} disabled={otherTeam.find(p => p.id === pokemon.id)} onClick={() => selectPokemon(pokemon, currentPlayer)} />)}
+          </div>
         </div>
       </div>
     );
