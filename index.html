@@ -385,7 +385,7 @@ const TYPE_CHART = {
   fairy: { fire: 0.5, fighting: 2, poison: 0.5, dragon: 2, dark: 2, steel: 0.5 },
 };
 
-const getEffectiveness = (attackType, defenseType) => TYPE_CHART[attackType]?.[defenseType] || 1;
+const getEffectiveness = (attackType, defenseType) => TYPE_CHART[attackType]?.[defenseType] ?? 1;
 
 // Unique icons for each move
 const MOVE_ICONS = {
@@ -416,6 +416,7 @@ const useSound = () => {
     if (!audioCtx.current) {
       audioCtx.current = new (window.AudioContext || window.webkitAudioContext)();
     }
+    if (audioCtx.current.state === 'suspended') audioCtx.current.resume();
     return audioCtx.current;
   };
   
@@ -1557,6 +1558,7 @@ function PokemonBattle() {
       setSleepTurns(sleepTurns);
       if (sleepTurns[attackerActive] >= 2 + Math.floor(Math.random() * 2)) {
         attackerStatusArr[attackerActive] = null; setAttackerStatus(attackerStatusArr);
+        sleepTurns[attackerActive] = 0; setSleepTurns(sleepTurns);
         setMessage(`${attacker.name} woke up!`); addFloatingText('AWAKE!', '#4CAF50', true, attackerSide);
       } else {
         setMessage(`${attacker.name} is asleep!`); addFloatingText('💤 ZZZ', '#3B9AE1', true, attackerSide);
@@ -1711,8 +1713,10 @@ function PokemonBattle() {
           setTimeout(() => {
             setFaintingPokemon(null);
             const nextAlive = attackerHP.findIndex((hp) => hp > 0);
-            if (nextAlive === -1 && defenderHP[defenderActive] <= 0) { setShowConfetti(true); setPhase('gameover'); setWinner(0); return; }
+            const defenderAlive = defenderHP.findIndex((hp) => hp > 0);
+            if (nextAlive === -1 && defenderAlive === -1) { setShowConfetti(true); setPhase('gameover'); setWinner(0); return; }
             else if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(isP1 ? 2 : 1); setPhase('gameover'); return; }
+            else { if (isP1) setPlayer1Active(nextAlive); else setPlayer2Active(nextAlive); setMessage(`Go, ${(isP1 ? player1Team : player2Team)[nextAlive].name}!`); }
           }, 800);
         }
         
