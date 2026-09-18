@@ -41,6 +41,13 @@
     setVH();
     // Trigger minimal-ui on iOS
     window.scrollTo(0, 1);
+
+    // Cache the game for offline play and instant re-launches.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
   </script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
