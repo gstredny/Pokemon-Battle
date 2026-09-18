@@ -1232,13 +1232,13 @@ const BackButton = ({ onClick }) => (
       position: "fixed",
       top: "10px",
       left: "10px",
-      width: "40px",
-      height: "40px",
+      width: "56px",
+      height: "56px",
       background: "rgba(0, 0, 0, 0.6)",
       border: "2px solid rgba(255, 255, 255, 0.3)",
       borderRadius: "8px",
       color: "white",
-      fontSize: "20px",
+      fontSize: "30px",
       cursor: "pointer",
       zIndex: 9999,
       display: "flex",
@@ -1402,8 +1402,8 @@ const AttackButton = ({ attack, onClick, disabled, defenderType, slotIndex }) =>
   const slot = slotColors[slotIndex % 4];
 
   return (
-    <button onClick={onClick} disabled={disabled} style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 'bold', background: disabled ? '#444' : slot.bg, color: 'white', border: `2px solid ${disabled ? '#555' : slot.border}`, borderRadius: '6px', cursor: disabled ? 'not-allowed' : 'pointer', boxShadow: disabled ? 'none' : '0 2px 5px rgba(0,0,0,0.3)', textShadow: '1px 1px 1px rgba(0,0,0,0.5)', minWidth: '115px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
-      <span style={{ fontSize: '14px' }}>{moveIcon}</span>
+    <button onClick={onClick} disabled={disabled} style={{ padding: '14px 10px', fontSize: '14px', fontWeight: 'bold', minHeight: '56px', background: disabled ? '#444' : slot.bg, color: 'white', border: `2px solid ${disabled ? '#555' : slot.border}`, borderRadius: '6px', cursor: disabled ? 'not-allowed' : 'pointer', boxShadow: disabled ? 'none' : '0 2px 5px rgba(0,0,0,0.3)', textShadow: '1px 1px 1px rgba(0,0,0,0.5)', minWidth: '115px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
+      <span style={{ fontSize: '20px' }}>{moveIcon}</span>
       <span>{attack.name}</span>
     </button>
   );
@@ -1428,8 +1428,8 @@ const TeamIndicator = ({ team, hpArray, activeIndex, statuses, onSwitch, canSwit
       const status = statuses?.[i];
       const isClickable = canSwitch && hpArray[i] > 0 && i !== activeIndex;
       return (
-        <div key={i} onClick={isClickable ? () => onSwitch(i) : null} style={{ width: '40px', height: '40px', borderRadius: '50%', background: i === activeIndex ? '#FFD700' : hpArray[i] > 0 ? typeData.color : '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: i === activeIndex ? '0 0 8px #FFD700' : 'none', opacity: hpArray[i] > 0 ? 1 : 0.4, border: i === activeIndex ? '2px solid white' : '1px solid #333', position: 'relative', cursor: isClickable ? 'pointer' : 'default', overflow: 'hidden' }}>
-          <img src={p.img} alt={p.name} style={{ width: '36px', height: '36px' }} />
+        <div key={i} onClick={isClickable ? () => onSwitch(i) : null} style={{ width: '52px', height: '52px', borderRadius: '50%', background: i === activeIndex ? '#FFD700' : hpArray[i] > 0 ? typeData.color : '#444', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: i === activeIndex ? '0 0 8px #FFD700' : 'none', opacity: hpArray[i] > 0 ? 1 : 0.4, border: i === activeIndex ? '2px solid white' : '1px solid #333', position: 'relative', cursor: isClickable ? 'pointer' : 'default', overflow: 'hidden' }}>
+          <img src={p.img} alt={p.name} style={{ width: '46px', height: '46px' }} />
           {status && <div style={{ position: 'absolute', bottom: -2, right: -2, fontSize: '8px', background: STATUS_DATA[status].color, borderRadius: '50%', width: '12px', height: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{STATUS_DATA[status].icon}</div>}
           {isClickable && <div style={{ position: 'absolute', top: -3, right: -3, fontSize: '8px', background: '#4CAF50', borderRadius: '50%', width: '12px', height: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>↺</div>}
         </div>
@@ -1796,6 +1796,7 @@ function PokemonBattle() {
     return (
       <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <AnimatedBackground />
+        {phase !== 'trainer1' && <BackButton onClick={goBack} />}
         <div style={{ position: 'relative', zIndex: 1, padding: '10px', textAlign: 'center' }}>
           <h2 style={{ color: currentPlayer === 1 ? '#FF6B6B' : '#4ECDC4', fontSize: '20px', margin: '0 0 10px 0' }}>Player {currentPlayer}: Choose Your Trainer!</h2>
           
@@ -1843,6 +1844,7 @@ function PokemonBattle() {
     return (
       <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <AnimatedBackground />
+        {phase !== 'trainer1' && <BackButton onClick={goBack} />}
         <div style={{ position: 'relative', zIndex: 1, padding: '8px', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: `${currentTrainer.color}33`, padding: '5px 10px', borderRadius: '8px', border: `2px solid ${currentTrainer.color}` }}>
@@ -1887,10 +1889,21 @@ function PokemonBattle() {
           <div style={{ color: currentTrainer.color, fontSize: '16px', fontWeight: 'bold' }}>{message}</div>
         </div>
         
-        <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', alignItems: 'center', padding: '5px 10px' }}>
-          {/* Left side - Player 1 */}
-          <div style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: '12px', fontWeight: 'bold', color: turn === 1 ? '#FFD700' : '#888', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+        <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-around', padding: '4px 8px', gap: '4px', minHeight: 0 }}>
+          {/* Top - Player 2 */}
+          <div style={{ width: '100%', textAlign: 'center' }}>
+            <div style={{ fontSize: '15px', fontWeight: 'bold', color: turn === 2 ? '#FFD700' : '#888', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+              <span style={{ color: trainer2.color }}>{trainer2.name}</span>
+              <img src={trainer2.img} alt={trainer2.name} style={{ width: '18px', height: '18px', imageRendering: 'pixelated' }} />
+              {turn === 2 && <span style={{ animation: 'pulse 1s infinite' }}>◀</span>}
+            </div>
+            <TeamIndicator team={player2Team} hpArray={player2HP} activeIndex={player2Active} statuses={player2Status} canSwitch={turn === 2 && !animating} onSwitch={handleSwitch} />
+            <BattlePokemon pokemon={p2Pokemon} hp={player2HP[player2Active]} maxHp={p2Pokemon.hp} status={player2Status[player2Active]} statBoosts={player2Boosts[player2Active]} shaking={shakeTarget === 2} flashing={flashTarget === 2} fainting={faintingPokemon === 2} isActive={turn === 2} />
+          </div>
+
+          {/* Middle - Player 1 */}
+          <div style={{ width: '100%', textAlign: 'center' }}>
+            <div style={{ fontSize: '15px', fontWeight: 'bold', color: turn === 1 ? '#FFD700' : '#888', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
               {turn === 1 && <span style={{ animation: 'pulse 1s infinite' }}>▶</span>}
               <img src={trainer1.img} alt={trainer1.name} style={{ width: '18px', height: '18px', imageRendering: 'pixelated' }} />
               <span style={{ color: trainer1.color }}>{trainer1.name}</span>
@@ -1898,12 +1911,12 @@ function PokemonBattle() {
             <TeamIndicator team={player1Team} hpArray={player1HP} activeIndex={player1Active} statuses={player1Status} canSwitch={turn === 1 && !animating} onSwitch={handleSwitch} />
             <BattlePokemon pokemon={p1Pokemon} hp={player1HP[player1Active]} maxHp={p1Pokemon.hp} status={player1Status[player1Active]} statBoosts={player1Boosts[player1Active]} shaking={shakeTarget === 1} flashing={flashTarget === 1} fainting={faintingPokemon === 1} isActive={turn === 1} />
           </div>
-          
-          {/* Center - VS and moves */}
-          <div style={{ width: '280px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+
+          {/* Bottom - moves for whoever's turn it is */}
+          <div style={{ width: '100%', maxWidth: '360px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
             <div style={{ fontSize: '20px' }}>⚔️</div>
             <div style={{ background: 'rgba(0,0,0,0.6)', borderRadius: '10px', padding: '6px', border: `2px solid ${currentTrainer.color}` }}>
-              <div style={{ fontSize: '10px', color: '#FFD700', marginBottom: '3px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+              <div style={{ fontSize: '14px', color: '#FFD700', marginBottom: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
                 <img src={currentPokemon.img} alt={currentPokemon.name} style={{ width: '28px', height: '28px' }} />
                 {currentPokemon.name}
               </div>
@@ -1911,17 +1924,6 @@ function PokemonBattle() {
                 {currentPokemon.attacks.map((attack, i) => <AttackButton key={i} attack={attack} disabled={animating} onClick={() => doAttack(attack)} defenderType={defenderType} slotIndex={i} />)}
               </div>
             </div>
-          </div>
-          
-          {/* Right side - Player 2 */}
-          <div style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: '12px', fontWeight: 'bold', color: turn === 2 ? '#FFD700' : '#888', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-              <span style={{ color: trainer2.color }}>{trainer2.name}</span>
-              <img src={trainer2.img} alt={trainer2.name} style={{ width: '18px', height: '18px', imageRendering: 'pixelated' }} />
-              {turn === 2 && <span style={{ animation: 'pulse 1s infinite' }}>◀</span>}
-            </div>
-            <TeamIndicator team={player2Team} hpArray={player2HP} activeIndex={player2Active} statuses={player2Status} canSwitch={turn === 2 && !animating} onSwitch={handleSwitch} />
-            <BattlePokemon pokemon={p2Pokemon} hp={player2HP[player2Active]} maxHp={p2Pokemon.hp} status={player2Status[player2Active]} statBoosts={player2Boosts[player2Active]} shaking={shakeTarget === 2} flashing={flashTarget === 2} fainting={faintingPokemon === 2} isActive={turn === 2} />
           </div>
         </div>
         <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
@@ -1942,7 +1944,7 @@ function PokemonBattle() {
           @keyframes glow { 0%, 100% { text-shadow: 0 0 15px #FFD700; } 50% { text-shadow: 0 0 30px #FFD700, 0 0 50px #FFD700; } }
           @keyframes winnerPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         `}</style>
-        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', gap: '30px' }}>
+        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '16px', maxWidth: '100%', padding: '0 12px' }}>
           <div style={{ fontSize: '70px', animation: 'bounce 1s infinite' }}>🏆</div>
           
           {winnerTrainer ? (
