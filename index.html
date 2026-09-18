@@ -45,7 +45,17 @@
     // Cache the game for offline play and instant re-launches.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        // A phone that already has the game keeps showing its saved copy until
+        // a new worker takes over. Reload once when that happens so an update
+        // lands without deleting and re-adding the app.
+        var hadController = !!navigator.serviceWorker.controller;
+        var reloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (!hadController || reloading) return;
+          reloading = true;
+          window.location.reload();
+        });
+        navigator.serviceWorker.register('sw.js').catch(function () {});
       });
     }
   </script>
@@ -88,6 +98,22 @@
   </script>
   <script type="text/babel">
     const { useState, useRef, useEffect } = React;
+
+// True when the phone is turned sideways, so the battle can lay itself out
+// across the screen instead of down it.
+const useIsLandscape = () => {
+  const [landscape, setLandscape] = useState(() => window.innerWidth > window.innerHeight);
+  useEffect(() => {
+    const update = () => setLandscape(window.innerWidth > window.innerHeight);
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+    };
+  }, []);
+  return landscape;
+};
 
 const TYPE_DATA = {
   fire: { icon: '🔥', color: '#FF6B35', bg: 'linear-gradient(135deg, #FF6B35 0%, #F7931E 100%)' },
@@ -1475,6 +1501,7 @@ function PokemonBattle() {
   const [showConfetti, setShowConfetti] = useState(false);
   
   const { playSound, playAttackSound, playPokemonCry, playBattleMusic, stopBattleMusic } = useSound();
+  const landscape = useIsLandscape();
 
   const addFloatingText = (text, color, large = false, side = null) => {
     const id = Date.now() + Math.random();
@@ -1896,9 +1923,9 @@ function PokemonBattle() {
           <div style={{ color: currentTrainer.color, fontSize: '16px', fontWeight: 'bold' }}>{message}</div>
         </div>
         
-        <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-around', padding: '4px 8px', gap: '4px', minHeight: 0 }}>
-          {/* Top - Player 2 */}
-          <div style={{ width: '100%', textAlign: 'center' }}>
+        <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: landscape ? 'row' : 'column', alignItems: 'center', justifyContent: 'space-around', padding: '4px 8px', gap: '4px', minHeight: 0, overflow: 'hidden' }}>
+          {/* Player 2: above you in portrait, to your right when turned sideways */}
+          <div style={{ width: landscape ? 'auto' : '100%', flex: landscape ? 1 : 'none', order: landscape ? 3 : 1, textAlign: 'center' }}>
             <div style={{ fontSize: '15px', fontWeight: 'bold', color: turn === 2 ? '#FFD700' : '#888', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
               <span style={{ color: trainer2.color }}>{trainer2.name}</span>
               <img src={trainer2.img} alt={trainer2.name} style={{ width: '18px', height: '18px', imageRendering: 'pixelated' }} />
@@ -1908,8 +1935,8 @@ function PokemonBattle() {
             <BattlePokemon pokemon={p2Pokemon} hp={player2HP[player2Active]} maxHp={p2Pokemon.hp} status={player2Status[player2Active]} statBoosts={player2Boosts[player2Active]} shaking={shakeTarget === 2} flashing={flashTarget === 2} fainting={faintingPokemon === 2} isActive={turn === 2} />
           </div>
 
-          {/* Middle - Player 1 */}
-          <div style={{ width: '100%', textAlign: 'center' }}>
+          {/* Player 1 */}
+          <div style={{ width: landscape ? 'auto' : '100%', flex: landscape ? 1 : 'none', order: landscape ? 1 : 2, textAlign: 'center' }}>
             <div style={{ fontSize: '15px', fontWeight: 'bold', color: turn === 1 ? '#FFD700' : '#888', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
               {turn === 1 && <span style={{ animation: 'pulse 1s infinite' }}>▶</span>}
               <img src={trainer1.img} alt={trainer1.name} style={{ width: '18px', height: '18px', imageRendering: 'pixelated' }} />
@@ -1919,9 +1946,9 @@ function PokemonBattle() {
             <BattlePokemon pokemon={p1Pokemon} hp={player1HP[player1Active]} maxHp={p1Pokemon.hp} status={player1Status[player1Active]} statBoosts={player1Boosts[player1Active]} shaking={shakeTarget === 1} flashing={flashTarget === 1} fainting={faintingPokemon === 1} isActive={turn === 1} />
           </div>
 
-          {/* Bottom - moves for whoever's turn it is */}
-          <div style={{ width: '100%', maxWidth: '360px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <div style={{ fontSize: '20px' }}>⚔️</div>
+          {/* Moves for whoever's turn it is */}
+          <div style={{ width: landscape ? '300px' : '100%', flexShrink: 0, maxWidth: '360px', order: landscape ? 2 : 3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+            <div style={{ fontSize: landscape ? '16px' : '20px' }}>⚔️</div>
             <div style={{ background: 'rgba(0,0,0,0.6)', borderRadius: '10px', padding: '6px', border: `2px solid ${currentTrainer.color}` }}>
               <div style={{ fontSize: '14px', color: '#FFD700', marginBottom: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
                 <img src={currentPokemon.img} alt={currentPokemon.name} style={{ width: '28px', height: '28px' }} />
