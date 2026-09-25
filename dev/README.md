@@ -13,7 +13,7 @@ python3 -m http.server 8777 --directory .
 
 Then open http://localhost:8777/dev/arena-harness.html?arena=ocean&t1=ash&t2=misty
 and use the buttons to throw, attack, heal, recall and faint. Query options:
-`arena` (jungle, ocean, mountains), `t1`/`t2` (trainer ids from `TRAINERS` in
+`arena` (jungle, ocean, mountains, volcano, cave), `t1`/`t2` (trainer ids from `TRAINERS` in
 `index.html`), `p1`/`p2` (a sprite file such as `gengar.gif`), `module` (see below).
 
 ## Play the real game from the terminal

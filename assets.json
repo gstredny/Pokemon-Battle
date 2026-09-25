@@ -4,6 +4,8 @@
   "manifest.json",
   "battle3d.js",
   "vendor/three.min.js",
+  "arenas/volcano.js",
+  "arenas/cave.js",
   "aerodactyl.gif",
   "alakazam.gif",
   "arcanine.gif",

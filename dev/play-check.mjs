@@ -73,9 +73,9 @@ try {
   } else {
     await step('arena picker lists the battlefields and starts the battle', async () => {
       await page.locator('text=Choose the Battlefield!').waitFor({ timeout: 5000 });
-      for (const n of ['Jungle', 'Ocean', 'Mountains']) await page.locator(`text=${n}`).first().waitFor({ timeout: 2000 });
+      for (const n of ['Jungle', 'Ocean', 'Mountains', 'Volcano', 'Crystal Cave']) await page.locator(`text=${n}`).first().waitFor({ timeout: 2000 });
       await shot('arena-picker');
-      await page.locator('text=Jungle').first().click();
+      await page.locator('text=Volcano').first().click();
       await page.locator('text=BATTLE!').click();
     });
   }

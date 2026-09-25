@@ -8,6 +8,8 @@
 // any of them later through Three.js's GLTFLoader; the joints a replacement
 // rig must expose are listed next to buildTrainer().
 import * as THREE from './vendor/three.min.js';
+import volcano from './arenas/volcano.js';
+import cave from './arenas/cave.js';
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -549,6 +551,8 @@ function registerArena(def) {
   ['id', 'name', 'icon', 'css', 'build'].forEach(k => { if (!def[k]) throw new Error(`Arena is missing "${k}"`); });
   ARENAS[def.id] = def;
 }
+registerArena(volcano);
+registerArena(cave);
 const listArenas = () => Object.values(ARENAS).map(({ id, name, icon, blurb, css }) => ({ id, name, icon, blurb, css }));
 
 // ---------------------------------------------------------------------------
