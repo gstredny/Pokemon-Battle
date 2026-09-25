@@ -36,9 +36,10 @@ python3 -m venv .venv
 .venv/bin/pip install pillow
 ```
 
-Cut out a drawing:
+Cut out a drawing (an iPhone photo that arrives as `.HEIC` needs converting first):
 
 ```
+sips -s format jpeg monsters/cards/card.heic --out monsters/cards/card.jpg
 .venv/bin/python tools/cutout.py grid monsters/cards/card.jpg /tmp/grid.jpg
 .venv/bin/python tools/cutout.py cut monsters/cards/card.jpg LEFT TOP RIGHT BOTTOM monsters/<slug>.png
 ```
