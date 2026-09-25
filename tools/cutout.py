@@ -2,6 +2,7 @@
 
   grid PHOTO OUT                       save PHOTO with a labeled grid, to read crop boxes from
   cut  PHOTO LEFT TOP RIGHT BOTTOM OUT crop that box, make the paper see-through, save a square PNG
+  fit  LIFTED OUT                      square up a picture already lifted by lift-subject.swift
 """
 import argparse
 
@@ -38,10 +39,14 @@ def cut_out(img, box):
     paper = paper_brightness(crop)
     rgba = crop.convert("RGBA")
     rgba.putdata([(r, g, b, 0 if is_paper(r, g, b, paper) else 255) for r, g, b, _ in rgba.get_flattened_data()])
-    content = rgba.getchannel("A").getbbox()
-    if content is None:
+    if rgba.getchannel("A").getbbox() is None:
         raise ValueError(f"nothing is drawn inside {box}")
-    art = rgba.crop(content)
+    return fit_square(rgba)
+
+
+def fit_square(rgba):
+    """Trim the see-through edges and center the monster in a SIZE x SIZE square."""
+    art = rgba.crop(rgba.getchannel("A").getbbox())
     scale = SIZE / max(art.size)
     art = art.resize((max(1, round(art.width * scale)), max(1, round(art.height * scale))), Image.LANCZOS)
     square = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
@@ -74,8 +79,14 @@ def main():
     for side in ("left", "top", "right", "bottom"):
         cut.add_argument(side, type=int)
     cut.add_argument("out")
+    fit = sub.add_parser("fit")
+    fit.add_argument("lifted")
+    fit.add_argument("out")
     args = parser.parse_args()
 
+    if args.command == "fit":
+        fit_square(Image.open(args.lifted).convert("RGBA")).save(args.out)
+        return
     img = load_upright(args.photo)
     if args.command == "grid":
         draw_grid(img).save(args.out)

@@ -44,6 +44,14 @@ sips -s format jpeg monsters/cards/card.heic --out monsters/cards/card.jpg
 .venv/bin/python tools/cutout.py cut monsters/cards/card.jpg LEFT TOP RIGHT BOTTOM monsters/<slug>.png
 ```
 
+A finished picture (from an art app, with a background) goes through the Mac's
+"lift the subject" feature instead:
+
+```
+swift tools/lift-subject.swift ~/Downloads/MONSTER.png /tmp/lifted.png
+.venv/bin/python tools/cutout.py fit /tmp/lifted.png monsters/<slug>.png
+```
+
 Tests:
 
 ```

@@ -6,7 +6,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
-from cutout import SIZE, cut_out, load_upright  # noqa: E402
+from cutout import SIZE, cut_out, fit_square, load_upright  # noqa: E402
 
 PAPER = (228, 224, 216)  # paper in a phone photo is a little gray, not pure white
 
@@ -42,6 +42,13 @@ class CutOutTest(unittest.TestCase):
     def test_blank_box_is_refused(self):
         with self.assertRaises(ValueError):
             cut_out(Image.new("RGB", (100, 100), PAPER), (0, 0, 100, 100))
+
+    def test_lifted_picture_is_trimmed_and_centered_in_a_square(self):
+        lifted = Image.new("RGBA", (400, 600), (0, 0, 0, 0))  # tall picture, see-through around the monster
+        ImageDraw.Draw(lifted).rectangle((100, 100, 199, 399), fill=(30, 90, 220, 255))
+        art = fit_square(lifted)
+        self.assertEqual(art.size, (SIZE, SIZE))
+        self.assertEqual(art.getchannel("A").getbbox(), (85, 0, 170, 256))  # 100x300 monster scaled to 85x256, centered
 
     def test_sideways_phone_photo_is_turned_upright(self):
         exif = Image.Exif()
