@@ -153,8 +153,9 @@ def check(path):
         problems.append(f'missing joints {sorted(set(NODES) - names)}')
     if abs(clips.get('Throw', 0) - THROW_SECONDS) > 0.01:
         problems.append(f'Throw clip should last {THROW_SECONDS} s, clips are {clips}')
-    if 'Idle' not in clips:
-        problems.append(f'no Idle clip, clips are {clips}')
+    for name in ('Idle', 'Cheer', 'Slump'):
+        if name not in clips:
+            problems.append(f'no {name} clip, clips are {clips}')
     return triangles, len(data), problems
 
 
