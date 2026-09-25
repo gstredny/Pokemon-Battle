@@ -1140,6 +1140,7 @@ const useSound = () => {
       if (type === 'superEffective') { osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(900, now + 0.2); gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
       else if (type === 'miss') { osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.25); gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25); osc.start(now); osc.stop(now + 0.25); }
       else if (type === 'crit') { [700, 900, 1100].forEach((f, i) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = f; g.gain.setValueAtTime(0.25, now + i * 0.07); g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.07 + 0.1); o.start(now + i * 0.07); o.stop(now + i * 0.07 + 0.1); }); }
+      else if (type === 'victory') { [523, 659, 784, 1047].forEach((f, i) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = f; g.gain.setValueAtTime(0.2, now + i * 0.15); g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.3); o.start(now + i * 0.15); o.stop(now + i * 0.15 + 0.3); }); }
       else if (type === 'faint') { osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.5); gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5); osc.start(now); osc.stop(now + 0.5); }
       else if (type === 'select') { osc.frequency.value = 600; gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05); osc.start(now); osc.stop(now + 0.05); }
       else if (type === 'heal') { [400, 500, 600, 700].forEach((f, i) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = f; g.gain.setValueAtTime(0.15, now + i * 0.08); g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.12); o.start(now + i * 0.08); o.stop(now + i * 0.08 + 0.12); }); }
@@ -1887,7 +1888,7 @@ function PokemonBattle() {
             const nextAlive = attackerHP.findIndex((hp) => hp > 0);
             const defenderAlive = defenderHP.findIndex((hp) => hp > 0);
             if (nextAlive === -1 && defenderAlive === -1) { setShowConfetti(true); setPhase('gameover'); setWinner(0); return; }
-            else if (nextAlive === -1) { setShowConfetti(true); setWinner(isP1 ? 2 : 1); setPhase('gameover'); return; }
+            else if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(isP1 ? 2 : 1); setPhase('gameover'); return; }
             else { if (isP1) setPlayer1Active(nextAlive); else setPlayer2Active(nextAlive); setMessage(`Go, ${(isP1 ? player1Team : player2Team)[nextAlive].name}!`); }
           }, 800);
         }
@@ -1899,7 +1900,7 @@ function PokemonBattle() {
           setTimeout(() => {
             setFaintingPokemon(null);
             const nextAlive = defenderHP.findIndex((hp) => hp > 0);
-            if (nextAlive === -1) { setShowConfetti(true); setWinner(turn); setPhase('gameover'); return; }
+            if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(turn); setPhase('gameover'); return; }
             else { setDefenderActive(nextAlive); setMessage(`Go, ${defenderTeam[nextAlive].name}!`); }
             finishTurn();
           }, 1000);
@@ -1911,7 +1912,7 @@ function PokemonBattle() {
           setTimeout(() => {
             setFaintingPokemon(null);
             const nextAlive = attackerHP.findIndex((hp) => hp > 0);
-            if (nextAlive === -1) { setShowConfetti(true); setWinner(isP1 ? 2 : 1); setPhase('gameover'); return; }
+            if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(isP1 ? 2 : 1); setPhase('gameover'); return; }
             else { if (isP1) setPlayer1Active(nextAlive); else setPlayer2Active(nextAlive); setMessage(`Go, ${(isP1 ? player1Team : player2Team)[nextAlive].name}!`); }
             finishTurn();
           }, 800);
@@ -1940,7 +1941,7 @@ function PokemonBattle() {
             setTimeout(() => {
               setFaintingPokemon(null);
               const nextAlive = curHP.findIndex((hp) => hp > 0);
-              if (nextAlive === -1) { setShowConfetti(true); setWinner(turn); setPhase('gameover'); return; }
+              if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(turn); setPhase('gameover'); return; }
               else { if (isP1) setPlayer2Active(nextAlive); else setPlayer1Active(nextAlive); }
               switchTurn();
             }, 800);
