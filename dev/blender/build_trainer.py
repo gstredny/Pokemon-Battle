@@ -147,7 +147,12 @@ def check(path):
 
 
 def main():
-    argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
+    if '--' in sys.argv:
+        argv = sys.argv[sys.argv.index('--') + 1:]
+    elif bpy.app.binary_path:              # inside the Blender app, the rest of argv is Blender's own
+        argv = []
+    else:                                  # the bpy module: plain `python build_trainer.py ash`
+        argv = sys.argv[1:]
     unknown = [t for t in argv if t not in LOOKS]
     if unknown:
         sys.exit(f'unknown trainer ids {unknown}; known: {sorted(LOOKS)}')
