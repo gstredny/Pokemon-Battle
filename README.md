@@ -26,7 +26,7 @@ Then open http://localhost:8777/index.html
 3. Photograph the card, flat and in good light. AirDrop it to the Mac and save
    it in `monsters/cards/`. That folder stays out of git.
 4. Ask Claude: "add the monster in monsters/cards/<file>, made by <nickname>".
-   The nickname shows on the public website. Claude picks the type, stars and
+   The nickname shows on the public website. Claude picks the type, stats and
    powers to match what the kid said, cuts out the drawing, tests it, and pushes.
 
 Tools, set up once:

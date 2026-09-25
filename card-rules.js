@@ -5,7 +5,9 @@
   const TYPES = ['fire', 'water', 'grass', 'electric', 'rock', 'psychic', 'ghost', 'fighting', 'fairy', 'normal', 'dragon', 'ice', 'flying', 'poison', 'ground', 'bug', 'steel', 'dark'];
   // Cries index.html knows how to play.
   const CRIES = ['mouse', 'dragon', 'canine', 'bird', 'turtle', 'frog', 'ghost', 'psychic', 'fighter', 'beast', 'rock', 'whale', 'fairy', 'plant', 'bug'];
-  const STAR_ROWS = ['hp', 'strong', 'tough', 'fast'];
+  const STATS = ['hp', 'atk', 'def', 'spd'];
+  // Most points one monster may have, so a sibling battle stays fair (Mewtwo has 480).
+  const MAX_POINTS = 425;
   // What each Trick does in battle.
   const TRICK_EFFECTS = { burn: 'burn', freeze: 'frozen', zap: 'paralysis', poison: 'poison', sleep: 'sleep' };
   // What each Save-Me does in battle.
@@ -23,12 +25,12 @@
     needText(card.madeBy, 'madeBy');
     if (!TYPES.includes(card.type)) problems.push(`type "${card.type}" is not a game type`);
     if (!CRIES.includes(card.cry)) problems.push(`cry "${card.cry}" is not a known cry`);
-    const stars = card.stars || {};
-    for (const row of STAR_ROWS) {
-      if (!Number.isInteger(stars[row]) || stars[row] < 0 || stars[row] > 5) problems.push(`${row} stars must be 0 to 5`);
+    const stats = card.stats || {};
+    for (const stat of STATS) {
+      if (!Number.isInteger(stats[stat]) || stats[stat] < 1 || stats[stat] > 250) problems.push(`${stat} must be a whole number from 1 to 250`);
     }
-    const total = STAR_ROWS.reduce((sum, row) => sum + (stars[row] || 0), 0);
-    if (total > 10) problems.push(`${total} stars, only 10 allowed`);
+    const total = STATS.reduce((sum, stat) => sum + (stats[stat] || 0), 0);
+    if (total > MAX_POINTS) problems.push(`${total} points, only ${MAX_POINTS} allowed`);
     const powers = card.powers || {};
     needText(powers.bigHit, 'Big Hit name');
     needText(powers.fastHit, 'Fast Hit name');
@@ -41,13 +43,10 @@
 
   function monsterFromCard(card, id) {
     checkCard(card);
-    const { type, stars, powers } = card;
+    const { type, stats, powers } = card;
     return {
       id, name: card.name, madeBy: card.madeBy, type, cry: card.cry,
-      hp: 80 + 25 * stars.hp,
-      atk: 40 + 20 * stars.strong,
-      def: 40 + 20 * stars.tough,
-      spd: 40 + 20 * stars.fast,
+      hp: stats.hp, atk: stats.atk, def: stats.def, spd: stats.spd,
       img: `monsters/${card.slug}.png`,
       attacks: [
         { name: powers.bigHit, power: 110, accuracy: 75, type },

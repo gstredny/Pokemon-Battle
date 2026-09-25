@@ -4,7 +4,7 @@ const { monsterFromCard } = require('../card-rules.js');
 
 const card = (overrides = {}) => ({
   slug: 'blaze-jaw', name: 'Blaze Jaw', madeBy: 'Sam', type: 'fire', cry: 'dragon',
-  stars: { hp: 3, strong: 3, tough: 2, fast: 2 },
+  stats: { hp: 155, atk: 100, def: 80, spd: 80 },
   powers: {
     bigHit: 'Lava Chomp', fastHit: 'Spark Nip',
     trick: { name: 'Smoke Puff', does: 'sleep' },
@@ -13,15 +13,14 @@ const card = (overrides = {}) => ({
   ...overrides,
 });
 
-test('stars become stats', () => {
+test('stats are real numbers, like every other Pokemon', () => {
   const m = monsterFromCard(card(), 1000);
   assert.deepEqual([m.hp, m.atk, m.def, m.spd], [155, 100, 80, 80]);
 });
 
-test('ten stars always total 400 to 425, like real Pokemon', () => {
-  const total = s => { const m = monsterFromCard(card({ stars: s }), 1); return m.hp + m.atk + m.def + m.spd; };
-  assert.equal(total({ hp: 0, strong: 0, tough: 5, fast: 5 }), 400);
-  assert.equal(total({ hp: 5, strong: 5, tough: 0, fast: 0 }), 425);
+test('allows up to 425 points in total', () => {
+  const m = monsterFromCard(card({ stats: { hp: 175, atk: 135, def: 90, spd: 25 } }), 1);
+  assert.equal(m.hp + m.atk + m.def + m.spd, 425);
 });
 
 test('the monster keeps its card details and drawing path', () => {
@@ -57,12 +56,14 @@ test('any type the game knows is allowed', () => {
   assert.equal(monsterFromCard(card({ type: 'dark' }), 1).type, 'dark');
 });
 
-test('refuses more than 10 stars', () => {
-  assert.throws(() => monsterFromCard(card({ stars: { hp: 3, strong: 3, tough: 3, fast: 2 } }), 1), /11 stars/);
+test('refuses more than 425 points in total', () => {
+  assert.throws(() => monsterFromCard(card({ stats: { hp: 176, atk: 135, def: 90, spd: 25 } }), 1), /426 points/);
 });
 
-test('refuses more than 5 stars in a row', () => {
-  assert.throws(() => monsterFromCard(card({ stars: { hp: 6, strong: 2, tough: 1, fast: 1 } }), 1), /hp/);
+test('refuses a stat that is not a whole number from 1 to 250', () => {
+  assert.throws(() => monsterFromCard(card({ stats: { hp: 0, atk: 100, def: 80, spd: 80 } }), 1), /hp must be/);
+  assert.throws(() => monsterFromCard(card({ stats: { hp: 155, atk: 99.5, def: 80, spd: 80 } }), 1), /atk must be/);
+  assert.throws(() => monsterFromCard(card({ stats: { hp: 155, atk: 100, def: 80 } }), 1), /spd must be/);
 });
 
 test('refuses a type the game does not know', () => {

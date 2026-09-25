@@ -27,7 +27,7 @@ words into a fair monster.
    write his own).
 3. George photographs the card, saves it in `monsters/cards/` (kept out of
    git), and tells Claude who made it (a nickname; it shows on the public site).
-4. Claude picks the type, stars and 4 powers to match the drawing and the kid's
+4. Claude picks the type, stats and 4 powers to match the drawing and the kid's
    words, cuts out the drawing, adds the monster, tests it in a browser, and
    pushes.
 
@@ -47,17 +47,14 @@ the rules keep every monster fair.
 
 - **Type:** any type the game knows, picked from the kid's words first ("it
   shoots fire" → fire), then from the drawing's main color.
-- **Stars:** 10 stars spread over Big HP, Strong, Tough and Fast (at most 5 in
-  a row), leaning toward the kid's words ("super fast" → more Fast).
+- **Stats:** real numbers, like every other Pokémon (`hp`, `atk`, `def`, `spd`),
+  each a whole number from 1 to 250, at most 425 points in total (the roster
+  runs 275–480; Mewtwo is 480). They lean toward the kid's words ("very slow
+  but very strong, hard to defeat" → big `hp` and `atk`, tiny `spd`). George
+  changed this from a 10-star budget on 2026-09-25: the stars had been for kids
+  to color, the simplified card dropped them, and "hp: 2" read as 2 HP.
 
-| Row | Game stat | Formula |
-|---|---|---|
-| Big HP | `hp` | 80 + 25 × stars |
-| Strong | `atk` | 40 + 20 × stars |
-| Tough | `def` | 40 + 20 × stars |
-| Fast | `spd` | 40 + 20 × stars |
-
-Ten stars always total 400–425; the current roster totals 275–480. Fast matters
+Speed matters
 because of the dodge rule (commit `68cbf98`): a defender dodges 1% per 4 points
 of speed over the attacker, up to 25%. Priority moves cannot be dodged.
 
@@ -70,7 +67,7 @@ of speed over the attacker, up to 25%. Priority moves cannot be dodged.
 | Trick | `power: 0, accuracy: 90` (sleep: 75), `effect` burn, frozen, paralysis, poison or sleep, `effectChance: 100` |
 | Save-Me | `heal: 50`, or `boostAtk` / `boostDef` / `boostSpd` |
 
-A record that breaks these rules (more than 10 stars, a type or effect the game
+A record that breaks these rules (more than 425 points, a type or effect the game
 does not know) is refused before it can ship.
 
 ## Art
