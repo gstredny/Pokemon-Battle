@@ -1,6 +1,6 @@
 // Caches the whole game so it loads instantly and plays with no connection.
 // Bump CACHE_VERSION whenever you change index.html or the artwork.
-const CACHE_VERSION = 'pokemon-battle-v16';
+const CACHE_VERSION = 'pokemon-battle-v17';
 
 const CDN = [
   'https://unpkg.com/react@18/umd/react.production.min.js',
@@ -11,8 +11,10 @@ const CDN = [
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_VERSION);
-    const local = await fetch('assets.json').then(r => r.json());
-    await cache.addAll(local);
+    // 'reload' skips the browser's own download cache (GitHub Pages keeps files
+    // for 10 minutes), so a new version never saves the previous version's files.
+    const local = await fetch('assets.json', { cache: 'reload' }).then(r => r.json());
+    await cache.addAll(local.map(url => new Request(url, { cache: 'reload' })));
     // CDN files are opaque cross-origin responses; cache them one by one so a
     // single failure cannot abort the whole install.
     await Promise.all(CDN.map(url =>
