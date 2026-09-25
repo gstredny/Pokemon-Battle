@@ -1,7 +1,7 @@
 # Pokemon Battle
 
 A two-player Pokemon battle game that installs on a phone like a real app.
-Two kids share one phone. After a short intro with music, each picks a trainer,
+Two kids share one phone. After a short intro, each picks a trainer,
 they take turns picking Pokemon until each has three, pick where to battle,
 then take turns fighting.
 The battle plays out in 3D: the trainers throw their pokeballs, the Pokemon
@@ -86,7 +86,7 @@ first visit so later launches are instant and work offline.
 | `*.png` | Trainer sprites and app icons. |
 | `monster-card.html` | The printable card kids draw on. |
 | `kid-monsters.js` | Every kid's monster. |
-| `music.js` | The songs, written as notes, and their player. It also holds the mute switch every sound shares. |
+| `music.js` | The songs, written as notes, and their player. No song plays for now (sound effects only); it also holds the mute switch every sound shares. |
 | `card-rules.js` | Turns a kid's monster into stats and moves. |
 | `monsters/` | Cut-out drawings of kid monsters. |
 | `tools/cutout.py` | Cuts a drawing out of a card photo. |
