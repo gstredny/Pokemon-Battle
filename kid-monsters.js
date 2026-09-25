@@ -17,7 +17,7 @@ globalThis.KID_CARDS = [
   // "It can fly. It can peck you, blow wind at you, and escape very quickly.
   // It'll be hard to attack, so very fast."
   {
-    slug: 'swortos', name: 'Swortos', madeBy: 'Daddy', type: 'flying', cry: 'bird',
+    slug: 'swortos', name: 'Swortos', madeBy: 'George', type: 'flying', cry: 'bird',
     stats: { hp: 95, atk: 115, def: 55, spd: 160 },
     powers: {
       bigHit: 'Mega Peck', fastHit: 'Gust',
@@ -27,7 +27,7 @@ globalThis.KID_CARDS = [
   },
   // "Obviously an electric Pokemon. It's also very fast; it can kind of shock you."
   {
-    slug: 'legtro', name: 'Legtro', madeBy: 'Daddy', type: 'electric', cry: 'dragon',
+    slug: 'legtro', name: 'Legtro', madeBy: 'George', type: 'electric', cry: 'dragon',
     stats: { hp: 100, atk: 125, def: 65, spd: 135 },
     powers: {
       bigHit: 'Mega Shock', fastHit: 'Spark Tail',
@@ -38,7 +38,7 @@ globalThis.KID_CARDS = [
   // "Very slow but very very strong, hard to defeat because he's a rock, and
   // he can throw rocks."
   {
-    slug: 'mega', name: 'Mega', madeBy: 'Daddy', type: 'rock', cry: 'rock',
+    slug: 'mega', name: 'Mega', madeBy: 'George', type: 'rock', cry: 'rock',
     stats: { hp: 175, atk: 135, def: 90, spd: 25 },
     powers: {
       bigHit: 'Boulder Throw', fastHit: 'Pebble Toss',
