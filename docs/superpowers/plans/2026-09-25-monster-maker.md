@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A kid fills in a printed Monster Card, and a photo of it becomes a playable monster whose attacks fly the kid's own drawings.
+**Goal:** A kid draws a monster on a printed card, and a photo of it becomes a playable monster in the game.
 
-**Architecture:** A printable page (`monster-card.html`) is what the kids fill in. Each filled card is typed into `kid-monsters.js` as a small record that mirrors the paper. `card-rules.js` turns a record into the Pokemon shape the battle already uses. `tools/cutout.py` cuts the drawings out of the photo. `index.html` puts kid monsters first in the roster and shows their drawings in battle.
+**Architecture:** A printable page (`monster-card.html`) asks for one drawing plus a name and "what can it do?". For each card, Claude writes a small record in `kid-monsters.js`, choosing the type, stars and powers from the kid's words. `card-rules.js` checks the record and turns it into the Pokemon shape the battle already uses. `tools/cutout.py` cuts the drawing out of the photo. `index.html` puts kid monsters first in the roster with a "by" tag.
 
 **Tech Stack:** Plain HTML/JS with no build step (React 18 and Babel from a CDN, as today). Node's built-in test runner for the rules. Python 3 with Pillow, in a local `.venv`, for cutting art (a dev tool, not part of the game).
 
@@ -16,21 +16,20 @@
 - Everything must work offline after the first visit. Every new file the game loads goes in `assets.json`, and every shipped change bumps `CACHE_VERSION` in `sw.js`.
 - `card-rules.js` keeps its constants inside an IIFE, and `kid-monsters.js` only assigns `globalThis.KID_CARDS`. Top-level `const`s there could clash with names in the Babel script in `index.html`.
 - Use only battle fields the engine already reads. No new mechanics.
-- Stats: `hp = 80 + 25 × stars`; `atk`, `def`, `spd = 40 + 20 × stars`.
+- Stats: `hp = 80 + 25 × stars`; `atk`, `def`, `spd = 40 + 20 × stars`. At most 10 stars, at most 5 in a row.
 - Moves: Big Hit `power 110, accuracy 75`; Fast Hit `power 40, accuracy 100, priority: true`; Trick `power 0, accuracy 90` (75 for sleep), `effectChance 100`; Save-Me `heal: 50` or `boostAtk` / `boostDef` / `boostSpd`.
-- Card types, exactly 14: fire, water, grass, electric, rock, psychic, ghost, fighting, fairy, dragon, ice, flying, poison, bug.
-- The card prints on one letter page.
-- Photos of filled cards are never committed. The repo and the site are public, and the cards show kids' handwriting. Only the cut-out art is committed.
-- Pushing `master` publishes to the kids' phones (GitHub Pages at `https://gstredny.github.io/Pokemon-Battle/`). Approving this plan approves the pushes in Task 1 and Task 6. Other tasks commit locally only.
+- The card asks only for a drawing, a name and "what can it do?". It prints on one letter page.
+- Photos of filled cards are never committed. The repo and the site are public, and the cards show kids' handwriting. Only the cut-out drawing is committed. `madeBy` is a nickname.
+- Pushing `master` publishes to the kids' phones (GitHub Pages at `https://gstredny.github.io/Pokemon-Battle/`). George approved pushing in Task 1 and Task 6. Other tasks commit locally only.
 - Commit with explicit pathspecs and end each message with `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`.
 
 ## Review Focus
 
 1. **A sideways phone photo.** The cut-out still comes out upright. Test in Task 3.
 2. **Grayish or shadowed paper, and pale crayon.** The paper still turns see-through and yellow crayon stays. Test in Task 3.
-3. **Typing mistakes from a card** (11 stars, 6 in one row, a type not on the card, an unknown Trick). The build refuses with a message naming the problem. Test in Task 2.
+3. **A mistake in a record** (11 stars, 6 in one row, an unknown type or Trick). The game refuses to build it, with a message naming the problem. Test in Task 2.
 4. **A very long monster name.** The pick card and the attack buttons still fit. Browser check in Task 4.
-5. **A new monster's art missing from the offline cache.** A test fails if any art file is missing from disk or from `assets.json`. Test in Task 4.
+5. **A new drawing missing from the offline cache.** A test fails if any drawing is missing from disk or from `assets.json`. Test in Task 4.
 
 ---
 
@@ -40,7 +39,7 @@
 - Create: `monster-card.html`
 
 **Interfaces:**
-- Produces: the drawing areas are empty rectangles with dashed borders and no printed text inside, so Task 6 can crop just inside the dashes.
+- Produces: the drawing area is an empty rectangle with a dashed border and nothing printed inside, so Task 6 can crop just inside the dashes.
 
 - [ ] **Step 1: Write the card page**
 
@@ -52,29 +51,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Monster Card</title>
 <style>
-  @page { size: letter; margin: 0.4in; }
+  @page { size: letter; margin: 0.5in; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Chalkboard SE', 'Comic Sans MS', 'Segoe UI', sans-serif; color: #111; background: #fff; }
-  .page { width: 7.7in; height: 10.2in; margin: 0 auto; display: flex; flex-direction: column; gap: 0.12in; }
-  .top { display: flex; align-items: flex-end; gap: 0.25in; }
-  .title { font-size: 24pt; font-weight: bold; white-space: nowrap; }
-  .line { flex: 1; font-size: 14pt; border-bottom: 2px solid #111; padding-bottom: 2px; }
-  .main { display: flex; gap: 0.2in; height: 4.4in; }
-  .draw { flex: 1; display: flex; flex-direction: column; }
-  .label { font-size: 13pt; font-weight: bold; margin-bottom: 4px; }
-  .area { flex: 1; border: 2px dashed #999; border-radius: 10px; }
-  .side { width: 3.1in; display: flex; flex-direction: column; gap: 0.15in; }
-  .types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-  .chip { border: 1.5px solid #111; border-radius: 999px; padding: 3px 4px; font-size: 10pt; text-align: center; white-space: nowrap; }
-  .stars { display: flex; flex-direction: column; gap: 2px; }
-  .row { display: flex; align-items: center; justify-content: space-between; font-size: 12pt; }
-  .row .s { font-size: 22pt; letter-spacing: 2px; }
-  .powers { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 0.15in; }
-  .power { border: 2px solid #111; border-radius: 12px; padding: 6px 8px; display: flex; flex-direction: column; gap: 5px; }
-  .power h3 { font-size: 13pt; }
-  .power small { font-size: 10pt; font-weight: normal; }
-  .choices { display: flex; gap: 4px; flex-wrap: wrap; }
-  .choices .chip { font-size: 9pt; padding: 2px 6px; }
+  .page { width: 7.5in; height: 10in; margin: 0 auto; display: flex; flex-direction: column; gap: 0.25in; }
+  h1 { font-size: 40pt; text-align: center; }
+  .main { flex: 1; display: flex; gap: 0.25in; }
+  .area { flex: 1; border: 3px dashed #999; border-radius: 16px; }
+  .example { width: 1.6in; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 0.2in; font-size: 16pt; font-weight: bold; }
+  .example img { width: 1.4in; height: 1.4in; object-fit: contain; image-rendering: pixelated; }
+  .line { font-size: 18pt; border-bottom: 2px solid #111; height: 0.55in; display: flex; align-items: flex-end; padding-bottom: 4px; }
   .print { position: fixed; top: 12px; right: 12px; font-size: 16px; padding: 8px 16px; }
   @media print { .print { display: none; } }
 </style>
@@ -82,64 +68,14 @@
 <body>
   <button class="print" onclick="window.print()">🖨️ Print</button>
   <div class="page">
-    <div class="top">
-      <div class="title">⚡ Monster Card</div>
-      <div class="line">Name:</div>
-      <div class="line">Made by:</div>
-    </div>
-
+    <h1>Draw your monster!</h1>
     <div class="main">
-      <div class="draw">
-        <div class="label">Draw your monster</div>
-        <div class="area"></div>
-      </div>
-      <div class="side">
-        <div>
-          <div class="label">Type: circle one</div>
-          <div class="types">
-            <div class="chip">🔥 fire</div><div class="chip">💧 water</div><div class="chip">🌿 grass</div>
-            <div class="chip">⚡ electric</div><div class="chip">🪨 rock</div><div class="chip">🔮 psychic</div>
-            <div class="chip">👻 ghost</div><div class="chip">👊 fighting</div><div class="chip">✨ fairy</div>
-            <div class="chip">🐉 dragon</div><div class="chip">❄️ ice</div><div class="chip">🦅 flying</div>
-            <div class="chip">☠️ poison</div><div class="chip">🐛 bug</div>
-          </div>
-        </div>
-        <div>
-          <div class="label">Color in 10 stars</div>
-          <div class="stars">
-            <div class="row"><span>❤️ Big HP</span><span class="s">☆☆☆☆☆</span></div>
-            <div class="row"><span>💪 Strong</span><span class="s">☆☆☆☆☆</span></div>
-            <div class="row"><span>🛡️ Tough</span><span class="s">☆☆☆☆☆</span></div>
-            <div class="row"><span>💨 Fast</span><span class="s">☆☆☆☆☆</span></div>
-          </div>
-        </div>
-      </div>
+      <div class="area"></div>
+      <div class="example"><img src="pikachu.gif" alt="Pikachu">like this!</div>
     </div>
-
-    <div class="powers">
-      <div class="power">
-        <h3>💥 Big Hit <small>very strong, sometimes misses</small></h3>
-        <div class="area"></div>
-        <div class="line">Name:</div>
-      </div>
-      <div class="power">
-        <h3>🎯 Fast Hit <small>weaker, too quick to dodge</small></h3>
-        <div class="area"></div>
-        <div class="line">Name:</div>
-      </div>
-      <div class="power">
-        <h3>🌀 Trick <small>circle what it does</small></h3>
-        <div class="choices"><span class="chip">🔥 burn</span><span class="chip">🧊 freeze</span><span class="chip">⚡ zap</span><span class="chip">☠️ poison</span><span class="chip">💤 sleep</span></div>
-        <div class="area"></div>
-        <div class="line">Name:</div>
-      </div>
-      <div class="power">
-        <h3>💚 Save-Me <small>circle what it does</small></h3>
-        <div class="choices"><span class="chip">💚 heal</span><span class="chip">💪 stronger</span><span class="chip">🛡️ tougher</span><span class="chip">💨 faster</span></div>
-        <div class="area"></div>
-        <div class="line">Name:</div>
-      </div>
-    </div>
+    <div class="line">Name:</div>
+    <div class="line">What can it do?</div>
+    <div class="line"></div>
   </div>
 </body>
 </html>
@@ -157,14 +93,14 @@ Expected: `pages: 1`
 - [ ] **Step 3: Look at the printed page**
 
 Run: `sips -s format png /private/tmp/claude-502/-Users-GStredny-slb-com-Pokemon-Battle/8794da0e-173a-4c78-8270-40058386dc7d/scratchpad/card.pdf --out /private/tmp/claude-502/-Users-GStredny-slb-com-Pokemon-Battle/8794da0e-173a-4c78-8270-40058386dc7d/scratchpad/card.png`
-Then open `card.png` with the Read tool. Expected: all four sections are visible, nothing is cut off at the bottom, the drawing areas are empty, and the Print button does not show.
+Then open `card.png` with the Read tool. Expected: the title, the big empty dashed box, Pikachu with "like this!", and the three lines all show, nothing is cut off, and the Print button does not show.
 
 - [ ] **Step 4: Commit and push**
 
 ```bash
 git -C /Users/GStredny@slb.com/Pokemon-Battle add -- monster-card.html
 git -C /Users/GStredny@slb.com/Pokemon-Battle diff --cached --name-only
-git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Add printable Monster Card for kids to fill in" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- monster-card.html
+git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Add printable Monster Card for kids to draw on" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- monster-card.html
 git -C /Users/GStredny@slb.com/Pokemon-Battle push origin master
 ```
 
@@ -183,9 +119,9 @@ Expected: `200`
 - Test: `tests/card-rules.test.js`
 
 **Interfaces:**
-- Produces: `monsterFromCard(card, id)`. It returns a Pokemon object `{ id, name, madeBy, type, cry, hp, atk, def, spd, img, attacks: [4 moves, each with art] }`, or throws `Error("<name>: <problems>")`. In the browser it is `window.monsterFromCard`; in Node it is `require('./card-rules.js').monsterFromCard`.
-- Card record shape: `{ slug, name, madeBy, type, cry, stars: { hp, strong, tough, fast }, powers: { bigHit: '<name>', fastHit: '<name>', trick: { name, does: burn|freeze|zap|poison|sleep }, saveMe: { name, does: heal|stronger|tougher|faster } } }`
-- Art paths: `monsters/<slug>.png` and `monsters/<slug>-<bigHit|fastHit|trick|saveMe>.png`.
+- Produces: `monsterFromCard(card, id)`. It returns a Pokemon object `{ id, name, madeBy, type, cry, hp, atk, def, spd, img, attacks: [4 moves] }`, or throws `Error("<name>: <problems>")`. In the browser it is `window.monsterFromCard`; in Node it is `require('./card-rules.js').monsterFromCard`.
+- Record shape: `{ slug, name, madeBy, type, cry, stars: { hp, strong, tough, fast }, powers: { bigHit: '<name>', fastHit: '<name>', trick: { name, does: burn|freeze|zap|poison|sleep }, saveMe: { name, does: heal|stronger|tougher|faster } } }`
+- Drawing path: `monsters/<slug>.png`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -217,7 +153,7 @@ test('ten stars always total 400 to 425, like real Pokemon', () => {
   assert.equal(total({ hp: 5, strong: 5, tough: 0, fast: 0 }), 425);
 });
 
-test('the monster keeps its card details and art path', () => {
+test('the monster keeps its card details and drawing path', () => {
   const m = monsterFromCard(card(), 1000);
   assert.equal(m.id, 1000);
   assert.equal(m.name, 'Blaze Jaw');
@@ -229,13 +165,13 @@ test('the monster keeps its card details and art path', () => {
 
 test('the four powers become the four moves', () => {
   const [big, fast, trick, save] = monsterFromCard(card(), 1).attacks;
-  assert.deepEqual(big, { name: 'Lava Chomp', power: 110, accuracy: 75, type: 'fire', art: 'monsters/blaze-jaw-bigHit.png' });
-  assert.deepEqual(fast, { name: 'Spark Nip', power: 40, accuracy: 100, type: 'fire', priority: true, art: 'monsters/blaze-jaw-fastHit.png' });
-  assert.deepEqual(trick, { name: 'Smoke Puff', power: 0, accuracy: 75, type: 'fire', effect: 'sleep', effectChance: 100, art: 'monsters/blaze-jaw-trick.png' });
-  assert.deepEqual(save, { name: 'Snack Time', power: 0, accuracy: 100, type: 'fire', heal: 50, art: 'monsters/blaze-jaw-saveMe.png' });
+  assert.deepEqual(big, { name: 'Lava Chomp', power: 110, accuracy: 75, type: 'fire' });
+  assert.deepEqual(fast, { name: 'Spark Nip', power: 40, accuracy: 100, type: 'fire', priority: true });
+  assert.deepEqual(trick, { name: 'Smoke Puff', power: 0, accuracy: 75, type: 'fire', effect: 'sleep', effectChance: 100 });
+  assert.deepEqual(save, { name: 'Snack Time', power: 0, accuracy: 100, type: 'fire', heal: 50 });
 });
 
-test('card words map to battle effects', () => {
+test('power words map to battle effects', () => {
   const moves = (trickDoes, saveDoes) => monsterFromCard(card({ powers: { ...card().powers, trick: { name: 'T', does: trickDoes }, saveMe: { name: 'S', does: saveDoes } } }), 1).attacks;
   const [, , zap, faster] = moves('zap', 'faster');
   assert.equal(zap.effect, 'paralysis');
@@ -246,6 +182,10 @@ test('card words map to battle effects', () => {
   assert.equal(moves('burn', 'tougher')[3].boostDef, true);
 });
 
+test('any type the game knows is allowed', () => {
+  assert.equal(monsterFromCard(card({ type: 'dark' }), 1).type, 'dark');
+});
+
 test('refuses more than 10 stars', () => {
   assert.throws(() => monsterFromCard(card({ stars: { hp: 3, strong: 3, tough: 3, fast: 2 } }), 1), /11 stars/);
 });
@@ -254,11 +194,11 @@ test('refuses more than 5 stars in a row', () => {
   assert.throws(() => monsterFromCard(card({ stars: { hp: 6, strong: 2, tough: 1, fast: 1 } }), 1), /hp/);
 });
 
-test('refuses a type that is not on the card', () => {
-  assert.throws(() => monsterFromCard(card({ type: 'normal' }), 1), /type "normal"/);
+test('refuses a type the game does not know', () => {
+  assert.throws(() => monsterFromCard(card({ type: 'banana' }), 1), /type "banana"/);
 });
 
-test('refuses a Trick that is not on the card', () => {
+test('refuses a Trick the game does not know', () => {
   assert.throws(() => monsterFromCard(card({ powers: { ...card().powers, trick: { name: 'T', does: 'confuse' } } }), 1), /trick "confuse"/);
 });
 
@@ -275,59 +215,58 @@ Expected: FAIL with `Cannot find module '../card-rules.js'`
 - [ ] **Step 3: Write `card-rules.js`**
 
 ```js
-// Turns one filled-in Monster Card into a Pokemon the battle can use.
+// Turns one Monster Card record into a Pokemon the battle can use.
 // index.html loads this as a plain script; the Node tests require it.
 (function () {
-  // The 14 types printed on the card.
-  const CARD_TYPES = ['fire', 'water', 'grass', 'electric', 'rock', 'psychic', 'ghost', 'fighting', 'fairy', 'dragon', 'ice', 'flying', 'poison', 'bug'];
+  // Every type index.html has colors and sounds for.
+  const TYPES = ['fire', 'water', 'grass', 'electric', 'rock', 'psychic', 'ghost', 'fighting', 'fairy', 'normal', 'dragon', 'ice', 'flying', 'poison', 'ground', 'bug', 'steel', 'dark'];
   // Cries index.html knows how to play.
   const CRIES = ['mouse', 'dragon', 'canine', 'bird', 'turtle', 'frog', 'ghost', 'psychic', 'fighter', 'beast', 'rock', 'whale', 'fairy', 'plant', 'bug'];
   const STAR_ROWS = ['hp', 'strong', 'tough', 'fast'];
-  // What each circle on the Trick box does in battle.
+  // What each Trick does in battle.
   const TRICK_EFFECTS = { burn: 'burn', freeze: 'frozen', zap: 'paralysis', poison: 'poison', sleep: 'sleep' };
-  // What each circle on the Save-Me box does in battle.
+  // What each Save-Me does in battle.
   const SAVE_ME_FIELDS = { heal: { heal: 50 }, stronger: { boostAtk: true }, tougher: { boostDef: true }, faster: { boostSpd: true } };
 
-  // A card is typed in by hand from a photo, so check it before it can break the game.
+  // Records are typed in by hand, so check one before it can break the game.
   function checkCard(card) {
     const problems = [];
     if (!/^[a-z0-9-]+$/.test(card.slug || '')) problems.push('slug must be lowercase letters, numbers and dashes');
     if (!card.name) problems.push('missing name');
     if (!card.madeBy) problems.push('missing madeBy');
-    if (!CARD_TYPES.includes(card.type)) problems.push(`type "${card.type}" is not on the card`);
+    if (!TYPES.includes(card.type)) problems.push(`type "${card.type}" is not a game type`);
     if (!CRIES.includes(card.cry)) problems.push(`cry "${card.cry}" is not a known cry`);
     const stars = card.stars || {};
     for (const row of STAR_ROWS) {
       if (!Number.isInteger(stars[row]) || stars[row] < 0 || stars[row] > 5) problems.push(`${row} stars must be 0 to 5`);
     }
     const total = STAR_ROWS.reduce((sum, row) => sum + (stars[row] || 0), 0);
-    if (total > 10) problems.push(`${total} stars colored, only 10 allowed`);
+    if (total > 10) problems.push(`${total} stars, only 10 allowed`);
     const powers = card.powers || {};
     if (!powers.bigHit) problems.push('missing Big Hit name');
     if (!powers.fastHit) problems.push('missing Fast Hit name');
     if (!powers.trick?.name) problems.push('missing Trick name');
-    if (!(powers.trick?.does in TRICK_EFFECTS)) problems.push(`trick "${powers.trick?.does}" is not on the card`);
+    if (!(powers.trick?.does in TRICK_EFFECTS)) problems.push(`trick "${powers.trick?.does}" is not a known Trick`);
     if (!powers.saveMe?.name) problems.push('missing Save-Me name');
-    if (!(powers.saveMe?.does in SAVE_ME_FIELDS)) problems.push(`save-me "${powers.saveMe?.does}" is not on the card`);
+    if (!(powers.saveMe?.does in SAVE_ME_FIELDS)) problems.push(`save-me "${powers.saveMe?.does}" is not a known Save-Me`);
     if (problems.length) throw new Error(`${card.name || card.slug}: ${problems.join('; ')}`);
   }
 
   function monsterFromCard(card, id) {
     checkCard(card);
-    const { slug, type, stars, powers } = card;
-    const art = slot => `monsters/${slug}-${slot}.png`;
+    const { type, stars, powers } = card;
     return {
       id, name: card.name, madeBy: card.madeBy, type, cry: card.cry,
       hp: 80 + 25 * stars.hp,
       atk: 40 + 20 * stars.strong,
       def: 40 + 20 * stars.tough,
       spd: 40 + 20 * stars.fast,
-      img: `monsters/${slug}.png`,
+      img: `monsters/${card.slug}.png`,
       attacks: [
-        { name: powers.bigHit, power: 110, accuracy: 75, type, art: art('bigHit') },
-        { name: powers.fastHit, power: 40, accuracy: 100, type, priority: true, art: art('fastHit') },
-        { name: powers.trick.name, power: 0, accuracy: powers.trick.does === 'sleep' ? 75 : 90, type, effect: TRICK_EFFECTS[powers.trick.does], effectChance: 100, art: art('trick') },
-        { name: powers.saveMe.name, power: 0, accuracy: 100, type, ...SAVE_ME_FIELDS[powers.saveMe.does], art: art('saveMe') },
+        { name: powers.bigHit, power: 110, accuracy: 75, type },
+        { name: powers.fastHit, power: 40, accuracy: 100, type, priority: true },
+        { name: powers.trick.name, power: 0, accuracy: powers.trick.does === 'sleep' ? 75 : 90, type, effect: TRICK_EFFECTS[powers.trick.does], effectChance: 100 },
+        { name: powers.saveMe.name, power: 0, accuracy: 100, type, ...SAVE_ME_FIELDS[powers.saveMe.does] },
       ],
     };
   }
@@ -340,14 +279,14 @@ Expected: FAIL with `Cannot find module '../card-rules.js'`
 - [ ] **Step 4: Run the tests to see them pass**
 
 Run: `node --test /Users/GStredny@slb.com/Pokemon-Battle/tests/card-rules.test.js`
-Expected: `pass 10`, `fail 0`
+Expected: `pass 11`, `fail 0`
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git -C /Users/GStredny@slb.com/Pokemon-Battle add -- card-rules.js tests/card-rules.test.js
 git -C /Users/GStredny@slb.com/Pokemon-Battle diff --cached --name-only
-git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Turn a Monster Card into battle stats and moves" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- card-rules.js tests/card-rules.test.js
+git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Turn a Monster Card record into stats and moves" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- card-rules.js tests/card-rules.test.js
 ```
 
 ---
@@ -373,7 +312,7 @@ python3 -m venv /Users/GStredny@slb.com/Pokemon-Battle/.venv
 /Users/GStredny@slb.com/Pokemon-Battle/.venv/bin/pip install --quiet pillow
 printf '.venv/\nmonsters/cards/\n' >> /Users/GStredny@slb.com/Pokemon-Battle/.gitignore
 ```
-Expected: `.venv/bin/python -c "import PIL; print(PIL.__version__)"` prints a version.
+Expected: `/Users/GStredny@slb.com/Pokemon-Battle/.venv/bin/python -c "import PIL; print(PIL.__version__)"` prints a version.
 
 - [ ] **Step 2: Write the failing tests**
 
@@ -557,12 +496,12 @@ git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Add tool that cuts draw
 **Files:**
 - Create: `kid-monsters.js`
 - Test: `tests/kid-cards.test.js`
-- Modify: `index.html` (script tags before line 99; `POKEMON` at line 164; `PokemonCard` line 1380; `AttackButton` line 1431; `AttackAnimation` lines 1449 and 1455; `setAttackAnim` line 1624; render line 1934)
+- Modify: `index.html` (script tags before `<script type="text/babel">`; `POKEMON`; `PokemonCard`)
 - Modify: `assets.json`, `sw.js`
 
 **Interfaces:**
 - Consumes: `monsterFromCard(card, id)` from Task 2.
-- Produces: `globalThis.KID_CARDS` (an array of card records). Kid monster ids are `1000 + index`. A move with an `art` field shows that image on its button and in its attack burst.
+- Produces: `globalThis.KID_CARDS` (an array of records). Kid monster ids are `1000 + index`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -578,22 +517,19 @@ require('../kid-monsters.js');
 const root = path.join(__dirname, '..');
 const assets = JSON.parse(fs.readFileSync(path.join(root, 'assets.json'), 'utf8'));
 const cards = globalThis.KID_CARDS;
-const art = cards.flatMap((card, i) => {
-  const m = monsterFromCard(card, 1000 + i);
-  return [m.img, ...m.attacks.map(a => a.art)];
-});
+const drawings = cards.map((card, i) => monsterFromCard(card, 1000 + i).img);
 
 test('every kid card has its own slug', () => {
   const slugs = cards.map(c => c.slug);
   assert.equal(new Set(slugs).size, slugs.length);
 });
 
-test('every monster drawing is on disk', () => {
-  for (const file of art) assert.ok(fs.existsSync(path.join(root, file)), `${file} is missing`);
+test('every drawing is on disk', () => {
+  for (const file of drawings) assert.ok(fs.existsSync(path.join(root, file)), `${file} is missing`);
 });
 
-test('every monster drawing is cached for offline play', () => {
-  for (const file of art) assert.ok(assets.includes(file), `${file} is not in assets.json`);
+test('every drawing is cached for offline play', () => {
+  for (const file of drawings) assert.ok(assets.includes(file), `${file} is not in assets.json`);
 });
 
 test('the card scripts are cached for offline play', () => {
@@ -609,7 +545,8 @@ Expected: FAIL with `Cannot find module '../kid-monsters.js'`
 - [ ] **Step 3: Write `kid-monsters.js`**
 
 ```js
-// Every Monster Card the kids have made, typed in from its photo, newest last.
+// Every Monster Card the kids have drawn, newest last. The kid draws and names
+// it; the type, stars and powers are picked to match what they said it can do.
 // card-rules.js turns each one into a Pokemon. How to add one: README.md.
 //
 // Shape of one card:
@@ -637,7 +574,7 @@ In `assets.json`, after `"manifest.json",`, add:
 - [ ] **Step 5: Run the tests to see them pass**
 
 Run: `node --test /Users/GStredny@slb.com/Pokemon-Battle/tests/*.test.js`
-Expected: `pass 14`, `fail 0` (10 from Task 2 plus these 4)
+Expected: `pass 15`, `fail 0` (11 from Task 2 plus these 4)
 
 - [ ] **Step 6: Wire kid monsters into `index.html`**
 
@@ -660,41 +597,14 @@ In `PokemonCard`, replace `      <div style={{ fontSize: '10px' }}>{typeData.ico
       <div style={{ fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{typeData.icon}{pokemon.madeBy && <span style={{ fontSize: '8px', color: '#FFD700' }}> by {pokemon.madeBy}</span>}</div>
 ```
 
-In `AttackButton`, replace `  const moveIcon = MOVE_ICONS[attack.name] || typeData.icon;` with:
-```jsx
-  const moveIcon = attack.art
-    ? <img src={attack.art} alt="" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
-    : MOVE_ICONS[attack.name] || typeData.icon;
-```
-
-In `AttackAnimation`, replace `const AttackAnimation = ({ type, side }) => {` with `const AttackAnimation = ({ type, side, art }) => {`, and replace
-`` filter: `drop-shadow(0 0 8px ${typeData.color})` }}>{typeData.icon}</div> `` with:
-```jsx
-filter: `drop-shadow(0 0 8px ${typeData.color})` }}>{art ? <img src={art} alt="" style={{ width: '60px', height: '60px', objectFit: 'contain' }} /> : typeData.icon}</div>
-```
-
-Replace `    setAttackAnim({ type: attack.type, side: attackerSide });` with:
-```js
-    setAttackAnim({ type: attack.type, side: attackerSide, art: attack.art });
-```
-
-Replace `{attackAnim && <AttackAnimation type={attackAnim.type} side={attackAnim.side} />}` with:
-```jsx
-{attackAnim && <AttackAnimation type={attackAnim.type} side={attackAnim.side} art={attackAnim.art} />}
-```
-
 In `sw.js`, bump `CACHE_VERSION` one number (for example `pokemon-battle-v10` to `pokemon-battle-v11`).
 
 - [ ] **Step 7: Play it in a browser with a temporary monster**
 
-Make stand-in art and a card with a very long name. Do not commit either:
+Make a stand-in drawing and a card with very long names. Do not commit either:
 ```bash
 mkdir -p /Users/GStredny@slb.com/Pokemon-Battle/monsters
 cp /Users/GStredny@slb.com/Pokemon-Battle/ash.png /Users/GStredny@slb.com/Pokemon-Battle/monsters/test-blob.png
-cp /Users/GStredny@slb.com/Pokemon-Battle/misty.png /Users/GStredny@slb.com/Pokemon-Battle/monsters/test-blob-bigHit.png
-cp /Users/GStredny@slb.com/Pokemon-Battle/brock.png /Users/GStredny@slb.com/Pokemon-Battle/monsters/test-blob-fastHit.png
-cp /Users/GStredny@slb.com/Pokemon-Battle/erika.png /Users/GStredny@slb.com/Pokemon-Battle/monsters/test-blob-trick.png
-cp /Users/GStredny@slb.com/Pokemon-Battle/oak.png /Users/GStredny@slb.com/Pokemon-Battle/monsters/test-blob-saveMe.png
 ```
 Temporarily set `globalThis.KID_CARDS` to:
 ```js
@@ -704,28 +614,29 @@ Temporarily set `globalThis.KID_CARDS` to:
 ```
 Serve with `python3 -m http.server 8792 --directory /Users/GStredny@slb.com/Pokemon-Battle` (in the background). Open `http://localhost:8792/index.html` in a fresh isolated Chrome DevTools context, with the viewport emulated at `844x390x3,mobile,touch,landscape`. Then:
 1. Pick trainers Ash, then Misty. On Ash's pick screen, check that the first card is `Super Mega Lava Shark Dragon` and shows `by Test` without overflowing, and screenshot it.
-2. Team 1: the test monster, Pikachu, Golem. Team 2: Snorlax, Golem, Rhydon. Start the battle.
-3. For each of the 4 moves, run in the page:
+2. Team 1: the test monster, Pikachu, Golem. Team 2: Chansey, Golem, Rhydon. Start the battle.
+3. For each of the 4 moves, on Ash's turn run:
 ```js
 async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const slot = ['bigHit', 'fastHit', 'trick', 'saveMe'][window.__slot = (window.__slot ?? -1) + 1];
-  const btn = [...document.querySelectorAll('button')].find(b => b.querySelector(`img[src$="-${slot}.png"]`));
-  if (!btn) return `no button shows the ${slot} drawing`;
+  const names = ['Gigantic Volcano Chomp Attack', 'Zip', 'Smoke Puff', 'Snack Time'];
+  const name = names[window.__slot = (window.__slot ?? -1) + 1];
+  const btn = [...document.querySelectorAll('button')].find(b => b.textContent.includes(name));
+  if (!btn) return `no button for ${name}`;
   btn.click();
-  for (let i = 0; i < 20; i++) { if ([...document.images].filter(im => im.src.endsWith(`-${slot}.png`)).length > 1) return `${slot}: art flew`; await sleep(25); }
-  return `${slot}: art did not fly`;
+  await sleep(300);
+  return document.body.innerText.includes(`used ${name}!`) ? `${name}: used` : `${name}: not used`;
 }
 ```
-   Between moves, let Misty take a turn with any move and wait about 2.5 seconds. Expected: `bigHit: art flew`, `fastHit: art flew`, `trick: art flew`, `saveMe: art flew`. Screenshot one attack in flight and one attack button with a long name.
+   After each, wait about 2.5 seconds. On Misty's turn, set `Math.random = () => 0.99` (so nothing puts the test monster to sleep), click her first move, wait about 2.5 seconds, and restore `Math.random`. Expected: all four report `: used`. Screenshot the move buttons with the long name.
 4. `list_console_messages` with types error: no errors other than `favicon.ico`.
 
-Then stop the server, delete `monsters/test-blob*.png`, and put `globalThis.KID_CARDS` back to `[\n]`.
+Then stop the server, delete `monsters/test-blob.png` and the empty `monsters/` folder, and put `globalThis.KID_CARDS` back to `[\n]`.
 
 - [ ] **Step 8: Run all tests again**
 
 Run: `node --test /Users/GStredny@slb.com/Pokemon-Battle/tests/*.test.js`
-Expected: `pass 14`, `fail 0`
+Expected: `pass 15`, `fail 0`
 Run: `git -C /Users/GStredny@slb.com/Pokemon-Battle status --short`
 Expected: only `index.html`, `sw.js`, `assets.json`, `kid-monsters.js`, `tests/kid-cards.test.js` (no `monsters/`)
 
@@ -734,7 +645,7 @@ Expected: only `index.html`, `sw.js`, `assets.json`, `kid-monsters.js`, `tests/k
 ```bash
 git -C /Users/GStredny@slb.com/Pokemon-Battle add -- kid-monsters.js tests/kid-cards.test.js index.html assets.json sw.js
 git -C /Users/GStredny@slb.com/Pokemon-Battle diff --cached --name-only
-git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Show kid monsters first and fly their drawings" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- kid-monsters.js tests/kid-cards.test.js index.html assets.json sw.js
+git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Show kid monsters first with who drew them" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- kid-monsters.js tests/kid-cards.test.js index.html assets.json sw.js
 ```
 
 ---
@@ -743,7 +654,6 @@ git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Show kid monsters first
 
 **Files:**
 - Modify: `README.md`
-- Modify: `docs/superpowers/specs/2026-09-25-monster-maker-design.md` (flow step 3)
 
 - [ ] **Step 1: Add the runbook to `README.md`**
 
@@ -751,18 +661,15 @@ Add this before `## How it is built`:
 ````markdown
 ## Adding a kid's monster
 
-1. Print the Monster Card: open `monster-card.html` (or
+1. Print the card: open `monster-card.html` (or
    https://gstredny.github.io/Pokemon-Battle/monster-card.html) and press Print.
-2. The kid fills it in: draw the monster, circle a type, color 10 stars, and
-   draw and name 4 powers. "Made by" goes on the public website, so use a
-   nickname.
-3. Photograph the whole card, flat and in good light. AirDrop it to the Mac and
-   save it in `monsters/cards/`. That folder stays out of git.
-4. Ask Claude: "add the monster in monsters/cards/<file>". Claude:
-   - reads the card and adds it to `kid-monsters.js`
-   - cuts out the 5 drawings (monster plus 4 powers) with `tools/cutout.py`
-   - adds the 5 images to `assets.json` and bumps `CACHE_VERSION` in `sw.js`
-   - runs the tests, plays the monster in a browser, and pushes
+2. The kid draws a monster in the big box. Ask "What's its name?" and "What can
+   it do?" and write down what they say.
+3. Photograph the card, flat and in good light. AirDrop it to the Mac and save
+   it in `monsters/cards/`. That folder stays out of git.
+4. Ask Claude: "add the monster in monsters/cards/<file>, made by <nickname>".
+   The nickname shows on the public website. Claude picks the type, stars and
+   powers to match what the kid said, cuts out the drawing, tests it, and pushes.
 
 Tools, set up once:
 
@@ -771,7 +678,7 @@ python3 -m venv .venv
 .venv/bin/pip install pillow
 ```
 
-Cut one drawing:
+Cut out a drawing:
 
 ```
 .venv/bin/python tools/cutout.py grid monsters/cards/card.jpg /tmp/grid.jpg
@@ -788,51 +695,46 @@ node --test tests/*.test.js
 
 Add these rows to the file table:
 ```markdown
-| `monster-card.html` | The printable card kids fill in. |
-| `kid-monsters.js` | Every kid's monster, typed in from its card. |
-| `card-rules.js` | Turns a card into stats and moves. |
-| `monsters/` | Cut-out drawings of kid monsters and their powers. |
-| `tools/cutout.py` | Cuts drawings out of a card photo. |
+| `monster-card.html` | The printable card kids draw on. |
+| `kid-monsters.js` | Every kid's monster. |
+| `card-rules.js` | Turns a kid's monster into stats and moves. |
+| `monsters/` | Cut-out drawings of kid monsters. |
+| `tools/cutout.py` | Cuts a drawing out of a card photo. |
 ```
 
-- [ ] **Step 2: Match the spec to how photos really arrive**
-
-In the spec's Flow, replace `3. George photographs the card and drops the photo in the chat.` with:
-`3. George photographs the card and saves it in monsters/cards/ (kept out of git).`
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 2: Commit**
 
 ```bash
-git -C /Users/GStredny@slb.com/Pokemon-Battle add -- README.md docs/superpowers/specs/2026-09-25-monster-maker-design.md
+git -C /Users/GStredny@slb.com/Pokemon-Battle add -- README.md
 git -C /Users/GStredny@slb.com/Pokemon-Battle diff --cached --name-only
-git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Document how to add a kid's monster" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- README.md docs/superpowers/specs/2026-09-25-monster-maker-design.md
+git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Document how to add a kid's monster" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- README.md
 ```
 
 ---
 
 ### Task 6: The first real monster (the smoke test)
 
-Blocked until George saves the first filled card photo in `monsters/cards/`.
+Blocked until George saves the first card photo in `monsters/cards/` and gives a nickname.
 
 **Files:**
-- Create: `monsters/<slug>.png`, `monsters/<slug>-bigHit.png`, `monsters/<slug>-fastHit.png`, `monsters/<slug>-trick.png`, `monsters/<slug>-saveMe.png`
+- Create: `monsters/<slug>.png`
 - Modify: `kid-monsters.js`, `assets.json`, `sw.js`
 
 - [ ] **Step 1: Read the card**
 
-Open the photo with the Read tool. Write down the name, made-by, circled type, stars per row, the 4 power names, and the Trick and Save-Me circles. Pick the `cry` from the list in `card-rules.js` that best fits the drawing. If a power has no name, name it from its drawing and ask George to confirm. If the stars break the rules, ask George.
+Open the photo with the Read tool. Note the name and the "What can it do?" words. Pick the type (from the words first, then the drawing's main color), a `cry` from the list in `card-rules.js`, and 10 stars leaning toward the words. Then name 4 powers that match the words: Big Hit, Fast Hit, a Trick (burn, freeze, zap, poison or sleep) and a Save-Me (heal, stronger, tougher or faster). If the name is missing, ask George.
 
-- [ ] **Step 2: Add the card to `kid-monsters.js`**
+- [ ] **Step 2: Add the record to `kid-monsters.js`**
 
-Append one record in the shape shown in that file's comment.
+Append one record in the shape shown in that file's comment, with `madeBy` set to George's nickname.
 
-- [ ] **Step 3: Cut out the 5 drawings**
+- [ ] **Step 3: Cut out the drawing**
 
-Run `.venv/bin/python tools/cutout.py grid monsters/cards/<file> /private/tmp/claude-502/-Users-GStredny-slb-com-Pokemon-Battle/8794da0e-173a-4c78-8270-40058386dc7d/scratchpad/grid.jpg` and open the grid image. Read each drawing area's box just inside its dashed border. Then run `cut` once per drawing into `monsters/<slug>.png` and `monsters/<slug>-<slot>.png`. Open each PNG. If paper or dashes remain, tighten the box and cut again.
+Run `/Users/GStredny@slb.com/Pokemon-Battle/.venv/bin/python /Users/GStredny@slb.com/Pokemon-Battle/tools/cutout.py grid monsters/cards/<file> /private/tmp/claude-502/-Users-GStredny-slb-com-Pokemon-Battle/8794da0e-173a-4c78-8270-40058386dc7d/scratchpad/grid.jpg` and open the grid image. Read the drawing box just inside its dashed border, then run `cut` into `monsters/<slug>.png`. Open the PNG. If paper or dashes remain, tighten the box and cut again.
 
-- [ ] **Step 4: Cache the art and bump the version**
+- [ ] **Step 4: Cache the drawing and bump the version**
 
-Add the 5 paths to `assets.json` and bump `CACHE_VERSION` in `sw.js`.
+Add `monsters/<slug>.png` to `assets.json` and bump `CACHE_VERSION` in `sw.js`.
 
 - [ ] **Step 5: Run all tests**
 
@@ -841,14 +743,14 @@ Expected: all pass, 0 failed
 
 - [ ] **Step 6: Play it**
 
-Repeat Task 4 Step 7 with the real monster (without the temporary card): it is first on the pick screen with its "by" tag, and all 4 powers fly their drawings. Screenshot the pick screen and one power in flight.
+Repeat Task 4 Step 7 with the real monster and its real move names (without the temporary card). Expected: it is first on the pick screen with its "by" tag, and all 4 moves report `: used`. Screenshot the pick screen and the battle.
 
 - [ ] **Step 7: Commit, push, verify live**
 
 ```bash
-git -C /Users/GStredny@slb.com/Pokemon-Battle add -- kid-monsters.js assets.json sw.js monsters/<slug>.png monsters/<slug>-bigHit.png monsters/<slug>-fastHit.png monsters/<slug>-trick.png monsters/<slug>-saveMe.png
+git -C /Users/GStredny@slb.com/Pokemon-Battle add -- kid-monsters.js assets.json sw.js monsters/<slug>.png
 git -C /Users/GStredny@slb.com/Pokemon-Battle diff --cached --name-only
-git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Add <Name>, drawn by <madeBy>" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- kid-monsters.js assets.json sw.js monsters/<slug>.png monsters/<slug>-bigHit.png monsters/<slug>-fastHit.png monsters/<slug>-trick.png monsters/<slug>-saveMe.png
+git -C /Users/GStredny@slb.com/Pokemon-Battle commit -m "Add <Name>, drawn by <madeBy>" -m "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" -- kid-monsters.js assets.json sw.js monsters/<slug>.png
 git -C /Users/GStredny@slb.com/Pokemon-Battle push origin master
 ```
 Watch the Pages deploy with `gh run watch <id> -R gstredny/Pokemon-Battle --exit-status`. Then:

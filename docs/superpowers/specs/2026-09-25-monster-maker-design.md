@@ -1,104 +1,97 @@
 # Monster Maker — design
 
-Date: 2026-09-25 · Status: draft, waiting for George's review
+Date: 2026-09-25 · Status: approved by George (revised the same day to "the kid just draws")
 
 ## Why
 
-George's kids want to invent their own monsters and battle with them. One
-child reads and writes; the other does not yet. Their drawings and ideas are
-the point, so the game shows them as drawn.
+George's kids want to invent their own monsters and battle with them. One is
+three and cannot read; the other reads and writes. A three-year-old can draw,
+and that is all the card asks for. Claude turns the drawing and the kid's own
+words into a fair monster.
 
 ## Intent contract
 
 - **Today:** the game has 30 built-in Pokémon. A kid's creation cannot get in.
-- **After:** a printable Monster Card exists. A photo of a filled card becomes a
-  playable monster. It sits first in the pick grid with a "Made by" tag, and its
-  attacks fly the kid's own power drawings across the screen.
+- **After:** a printable card says "Draw your monster!" A photo of a filled
+  card, plus the kid's answers to "What's its name?" and "What can it do?",
+  becomes a playable monster. It sits first in the pick grid with a "by" tag.
 - **Smoke test:** build the first real card in. In a browser: pick it, battle,
-  use all 4 powers, see each power drawing fly, screenshot it. Separately, the
-  card's print preview fits one letter page (screenshot).
+  use all 4 moves, screenshot it. Separately, the card's print preview fits one
+  letter page (screenshot).
 
 ## Flow
 
 1. George prints `monster-card.html`.
-2. A kid fills it in (the non-reader circles and draws; George writes her words).
-3. George photographs the card and drops the photo in the chat.
-4. Claude reads the card, cuts out the art, adds the monster, tests it in a
-   browser, and commits.
+2. The kid draws a monster in the big box. A grown-up asks "What's its name?"
+   and "What can it do?" and writes the answers on the card (the reader can
+   write his own).
+3. George photographs the card, saves it in `monsters/cards/` (kept out of
+   git), and tells Claude who made it (a nickname; it shows on the public site).
+4. Claude picks the type, stars and 4 powers to match the drawing and the kid's
+   words, cuts out the drawing, adds the monster, tests it in a browser, and
+   pushes.
 
 ## The card (`monster-card.html`)
 
-One letter page, one photo. Pictures to circle plus lines to write, so it works
-for a reader and a non-reader.
+One letter page, one photo:
 
-- **Name** and **Made by** lines.
-- **Drawing box** for the monster.
-- **Type:** circle one of 14 icons: fire, water, grass, electric, rock, psychic,
-  ghost, fighting, fairy, dragon, ice, flying, poison, bug.
-- **Power stars:** 4 rows of 5 stars (Big HP, Strong, Tough, Fast). Color in
-  10, at most 5 in a row.
-- **4 power boxes**, each with room to draw the power and a name line:
-  - Big Hit — very strong, sometimes misses.
-  - Fast Hit — weaker, but too quick to dodge.
-  - Trick — circle one: burn, freeze, zap, poison, sleep.
-  - Save-Me — circle one: heal, get stronger, get tougher, get faster.
+- Big title: **Draw your monster!**
+- A big empty box with a dashed border and nothing printed inside.
+- A small Pikachu beside it: "like this!"
+- Lines: **Name:** and **What can it do?** (two lines).
 
 ## Card → game rules
 
-Every rule below uses fields the battle engine already supports. No new battle
-mechanics.
+Claude fills in a record for each card. The kid never sees these choices, but
+the rules keep every monster fair.
 
-**Stats** (the current roster totals 275–480):
+- **Type:** any type the game knows, picked from the kid's words first ("it
+  shoots fire" → fire), then from the drawing's main color.
+- **Stars:** 10 stars spread over Big HP, Strong, Tough and Fast (at most 5 in
+  a row), leaning toward the kid's words ("super fast" → more Fast).
 
-| Card row | Game stat | Formula |
+| Row | Game stat | Formula |
 |---|---|---|
 | Big HP | `hp` | 80 + 25 × stars |
 | Strong | `atk` | 40 + 20 × stars |
 | Tough | `def` | 40 + 20 × stars |
 | Fast | `spd` | 40 + 20 × stars |
 
-Ten stars always total 400–425. A card with more than 10 stars, or more than 5
-in a row, goes back to George to settle with the kid.
+Ten stars always total 400–425; the current roster totals 275–480. Fast matters
+because of the dodge rule (commit `68cbf98`): a defender dodges 1% per 4 points
+of speed over the attacker, up to 25%. Priority moves cannot be dodged.
 
-Fast matters because of the dodge rule (commit `68cbf98`): a defender dodges
-1% per 4 points of speed over the attacker, up to 25%. Priority moves cannot
-be dodged.
-
-**Powers:**
+- **Powers:** 4 moves named to match the kid's words:
 
 | Slot | Move fields |
 |---|---|
 | Big Hit | `power: 110, accuracy: 75`, monster's type |
 | Fast Hit | `power: 40, accuracy: 100, priority: true` (never dodged), monster's type |
-| Trick | `power: 0, accuracy: 90` (sleep: 75), `effect` as circled, `effectChance: 100` |
+| Trick | `power: 0, accuracy: 90` (sleep: 75), `effect` burn, frozen, paralysis, poison or sleep, `effectChance: 100` |
 | Save-Me | `heal: 50`, or `boostAtk` / `boostDef` / `boostSpd` |
 
-A power box left unnamed gets a name from its drawing, and George confirms it.
+A record that breaks these rules (more than 10 stars, a type or effect the game
+does not know) is refused before it can ship.
 
 ## Art
 
-- The monster drawing is cropped, and the white paper is made transparent:
-  `monsters/<slug>.png`.
-- Each power drawing is cut out the same way: `monsters/<slug>-<slot>.png`.
-  In battle it flies across the screen in place of the move's emoji.
-- Cutting runs through a small Pillow script. It is dev-only and not part of
-  the game. Pillow is not installed today, so it goes in a throwaway virtual
-  environment.
-- Cry: the closest existing cry type. The kids' own recorded voices are
-  project 2.
+- The drawing is cropped and the white paper made transparent:
+  `monsters/<slug>.png`. Attacks use the type's burst, as today.
+- Cutting runs through a small Pillow script (dev-only, in a local `.venv`).
+- Cry: the closest existing cry type.
 
 ## Game changes (`index.html`, `assets.json`, `sw.js`)
 
 - Kid monsters go at the front of `POKEMON`, with a `madeBy` field.
-- The pick card shows a small "Made by" tag within its current 99px height.
-- `AttackAnimation` shows a move's drawing when it has one.
+- The pick card shows a small "by" tag without growing past its 99px height.
 - New images are listed in `assets.json`, and `CACHE_VERSION` is bumped.
 
 ## Not now
 
-- An in-app maker on the phone. Build it once real cards show what kids invent.
+- Power drawings, star rows and type circles on the card. Too much for a
+  three-year-old. Add a back side later if the older kid wants more.
+- An in-app maker on the phone.
 - A separate "Our Monsters" page. Only if the pick grid gets too crowded.
-- New effects such as confusion.
 
 ## Later projects (each gets its own design)
 
