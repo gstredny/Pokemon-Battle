@@ -1680,12 +1680,13 @@ const can3D = () => {
 // The 3D battlefield (battle3d.js) filling its parent. Made once per battle;
 // hands the scene up through onReady, or reports onError so the game can fall
 // back to the classic battle.
+const MOVES_PANEL_WIDTH = 250; // the move buttons floating at the left of the 3D battle
 const Battle3DStage = ({ arena, trainers, onReady, onError }) => {
   const ref = useRef(null);
   useEffect(() => {
     let scene = null;
     try {
-      scene = window.Battle3D.create({ container: ref.current, arena, trainers });
+      scene = window.Battle3D.create({ container: ref.current, arena, trainers, insetLeft: MOVES_PANEL_WIDTH + 12 });
       scene.onError = onError;
       onReady(scene);
     } catch (err) {
@@ -2309,32 +2310,27 @@ function PokemonBattle() {
     const currentTrainer = turn === 1 ? trainer1 : trainer2;
     const defenderType = turn === 1 ? p2Pokemon.type : p1Pokemon.type;
     const locked = animating || busy3D > 0;
-    // The battlefield fills the space the move buttons leave: above them when
-    // upright, to their left when the phone is turned. The tree keeps the same
-    // shape either way so turning the phone does not rebuild the 3D scene.
+    // The battlefield fills the whole screen. The turn message floats at the
+    // top, and the move buttons float on the left beside player 1's trainer,
+    // so the middle stays clear for the fight. The tree never changes shape,
+    // so turning the phone does not rebuild the 3D scene.
     return (
-      <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', background: '#000' }}>
+      <div style={{ height: 'var(--vh, 100vh)', position: 'relative', overflow: 'hidden', fontFamily: "'Segoe UI', sans-serif", background: '#000' }}>
         {screenFlash && <ScreenFlash color={screenFlash} />}
-        <div style={{ position: 'relative', zIndex: 3, textAlign: 'center', padding: '4px 10px', background: 'rgba(0,0,0,0.75)' }}>
-          <div style={{ color: currentTrainer.color, fontSize: '16px', fontWeight: 'bold' }}>{message}</div>
+        <div style={{ position: 'absolute', inset: 0 }}>
+          <Battle3DStage arena={scene.id} trainers={[trainer1.id, trainer2.id]} onReady={setScene3d} onError={() => { setScene3d(null); setUse3D(false); }} />
+          <HudCard trainer={trainer2} team={player2Team} hpArray={player2HP} activeIndex={player2Active} statuses={player2Status} boosts={player2Boosts} isTurn={turn === 2} canSwitch={turn === 2 && !locked} onSwitch={handleSwitch} style={{ top: '6px', left: '6px' }} />
+          <HudCard trainer={trainer1} team={player1Team} hpArray={player1HP} activeIndex={player1Active} statuses={player1Status} boosts={player1Boosts} isTurn={turn === 1} canSwitch={turn === 1 && !locked} onSwitch={handleSwitch} style={{ bottom: '6px', right: '6px' }} />
+          {floatingTexts.map(ft => <FloatingText key={ft.id} text={ft.text} color={ft.color} large={ft.large} x={ft.x} y={ft.y} />)}
         </div>
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: landscape ? 'row' : 'column' }}>
-          <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
-            <Battle3DStage arena={scene.id} trainers={[trainer1.id, trainer2.id]} onReady={setScene3d} onError={() => { setScene3d(null); setUse3D(false); }} />
-            <HudCard trainer={trainer2} team={player2Team} hpArray={player2HP} activeIndex={player2Active} statuses={player2Status} boosts={player2Boosts} isTurn={turn === 2} canSwitch={turn === 2 && !locked} onSwitch={handleSwitch} style={{ top: '6px', left: '6px' }} />
-            <HudCard trainer={trainer1} team={player1Team} hpArray={player1HP} activeIndex={player1Active} statuses={player1Status} boosts={player1Boosts} isTurn={turn === 1} canSwitch={turn === 1 && !locked} onSwitch={handleSwitch} style={{ bottom: '6px', right: '6px' }} />
-            {floatingTexts.map(ft => <FloatingText key={ft.id} text={ft.text} color={ft.color} large={ft.large} x={ft.x} y={ft.y} />)}
+        <div style={{ position: 'absolute', zIndex: 3, top: '8px', left: '50%', transform: 'translateX(-50%)', maxWidth: '42%', textAlign: 'center', padding: '3px 12px', borderRadius: '14px', background: 'rgba(0,0,0,0.6)', color: currentTrainer.color, fontSize: '15px', fontWeight: 'bold', textShadow: '0 1px 2px #000' }}>{message}</div>
+        <div style={{ position: 'absolute', zIndex: 3, left: '6px', top: '50%', transform: 'translateY(-38%)', width: `${MOVES_PANEL_WIDTH}px`, background: 'rgba(0,0,0,0.45)', borderRadius: '10px', padding: '5px', border: `2px solid ${currentTrainer.color}` }}>
+          <div style={{ fontSize: '13px', color: '#FFD700', marginBottom: '3px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', textShadow: '0 1px 2px #000' }}>
+            <img src={currentPokemon.img} alt={currentPokemon.name} style={{ width: '24px', height: '24px' }} />
+            {currentTrainer.name}'s {currentPokemon.name}
           </div>
-          <div style={{ flexShrink: 0, width: landscape ? '300px' : '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', background: 'linear-gradient(180deg, #151a2c, #0d1020)' }}>
-            <div style={{ width: '100%', maxWidth: '360px', background: 'rgba(0,0,0,0.6)', borderRadius: '10px', padding: '6px', border: `2px solid ${currentTrainer.color}` }}>
-              <div style={{ fontSize: '14px', color: '#FFD700', marginBottom: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                <img src={currentPokemon.img} alt={currentPokemon.name} style={{ width: '28px', height: '28px' }} />
-                {currentTrainer.name}'s {currentPokemon.name}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2px' }}>
-                {currentPokemon.attacks.map((attack, i) => <AttackButton key={i} attack={attack} disabled={locked} onClick={() => doAttack(attack)} defenderType={defenderType} slotIndex={i} />)}
-              </div>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '3px' }}>
+            {currentPokemon.attacks.map((attack, i) => <AttackButton key={i} attack={attack} disabled={locked} onClick={() => doAttack(attack)} defenderType={defenderType} slotIndex={i} />)}
           </div>
         </div>
         <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>

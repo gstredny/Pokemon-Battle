@@ -1131,9 +1131,11 @@ const LAYOUTS = {
 const LANDSCAPE_ASPECT = 2.1; // the width/height the landscape camera pose is framed for
 
 class BattleScene {
-  constructor({ container, arena, trainers, seed = 1 }) {
+  // insetLeft: pixels the game's buttons cover at the left edge when sideways.
+  constructor({ container, arena, trainers, seed = 1, insetLeft = 0 }) {
     if (!ARENAS[arena]) throw new Error(`Unknown arena "${arena}"`);
     this.container = container;
+    this.insetLeft = insetLeft;
     this.timeline = new Timeline();
     this.queues = { 1: Promise.resolve(), 2: Promise.resolve() };
     this.disposed = false;
@@ -1225,7 +1227,13 @@ class BattleScene {
     const w = this.container.clientWidth || 1, h = this.container.clientHeight || 1;
     this.width = w; this.height = h;
     this.renderer.setSize(w, h, false);
-    this.camera.aspect = w / h;
+    // Sideways, the battle is framed in the open area right of the buttons
+    // (fw wide), and the scenery carries on behind the buttons.
+    const inset = w > h ? Math.min(this.insetLeft, w * 0.4) : 0;
+    const fw = w - inset;
+    this.camera.aspect = fw / h;
+    if (inset) this.camera.setViewOffset(fw, h, -inset, 0, w, h);
+    else this.camera.clearViewOffset();
     const layout = w > h ? LAYOUTS.landscape : LAYOUTS.portrait;
     if (layout !== this.layout) {
       this.layout = layout;
@@ -1240,10 +1248,10 @@ class BattleScene {
     // Narrow phones need a wider view to keep both sides on screen.
     let fov = pose.fov + (w < h ? clamp((0.62 - w / h) * 40, 0, 12) : 0);
     // Sideways, the landscape pose is framed for a full-width view; when the
-    // battlefield is narrower (the move buttons take the right side), widen it
-    // to keep the same side-to-side view so no one is cut off at the edges.
-    if (w > h && w / h < LANDSCAPE_ASPECT) {
-      const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(fov / 2)) * LANDSCAPE_ASPECT / (w / h));
+    // open area is narrower, widen it to keep the same side-to-side view so
+    // no one is cut off at the edges.
+    if (w > h && fw / h < LANDSCAPE_ASPECT) {
+      const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(fov / 2)) * LANDSCAPE_ASPECT / (fw / h));
       fov = THREE.MathUtils.radToDeg(half * 2);
     }
     this.targetPose = { pos: pose.pos.clone(), look: pose.look.clone(), fov };
