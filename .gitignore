@@ -2,3 +2,5 @@
 Screenshot*.png
 uipoki.png
 .claude/
+.venv/
+monsters/cards/
