@@ -2,3 +2,5 @@
 Screenshot*.png
 uipoki.png
 .claude/
+dev/shots/
+node_modules/

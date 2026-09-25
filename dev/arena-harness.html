@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Arena harness</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#000}#stage{position:absolute;inset:0}
+#bar{position:absolute;top:6px;left:6px;z-index:5;display:flex;gap:4px;flex-wrap:wrap;font-family:sans-serif}
+#bar button{font-size:12px;padding:6px 8px;border-radius:6px;border:1px solid #888;background:#111c;color:#fff}</style>
+<script type="module" src="../battle3d.js"></script>
+</head><body><div id="stage"></div>
+<div id="bar">
+  <button onclick="send(1)">Send out P1</button><button onclick="send(2)">Send out P2</button>
+  <button onclick="scene.attack(1,'electric')">P1 attacks</button><button onclick="scene.hit(2)">P2 hit</button>
+  <button onclick="scene.attack(2,'fire')">P2 attacks</button><button onclick="scene.hit(1)">P1 hit</button>
+  <button onclick="scene.attack(1,'grass','heal')">P1 heals</button><button onclick="scene.recall(1)">Recall P1</button>
+  <button onclick="scene.faint(2)">P2 faints</button>
+</div>
+<script>
+  // Drives the 3D battlefield on its own, without the game around it.
+  // Query: ?arena=jungle&t1=ash&t2=misty  and optionally &module=../arenas/volcano.js
+  // (a module that exports a default arena definition to register).
+  window.errors = [];
+  window.addEventListener('error', e => window.errors.push(String(e.message)));
+  window.addEventListener('unhandledrejection', e => window.errors.push('rejection: ' + (e.reason && e.reason.message || e.reason)));
+  const q = new URLSearchParams(location.search);
+  const P1 = { img: '../' + (q.get('p1') || 'pikachu.gif'), name: 'P1', type: 'electric' };
+  const P2 = { img: '../' + (q.get('p2') || 'charizard.gif'), name: 'P2', type: 'fire' };
+  window.send = side => window.scene.sendOut(side, side === 1 ? P1 : P2);
+  async function start() {
+    const mod = q.get('module');
+    if (mod) window.Battle3D.registerArena((await import(mod)).default);
+    window.scene = window.Battle3D.create({ container: document.getElementById('stage'), arena: q.get('arena') || 'jungle', trainers: [q.get('t1') || 'ash', q.get('t2') || 'misty'] });
+    window.started = true;
+  }
+  const boot = () => start().catch(err => { window.errors.push(err.message); document.body.insertAdjacentHTML('beforeend', '<pre style="color:#f66;position:absolute;top:60px;left:8px;z-index:9">' + err.message + '</pre>'); });
+  if (window.Battle3D) boot(); else window.addEventListener('battle3d-ready', boot);
+</script></body></html>
