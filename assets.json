@@ -2,6 +2,8 @@
   "./",
   "index.html",
   "manifest.json",
+  "card-rules.js",
+  "kid-monsters.js",
   "aerodactyl.gif",
   "alakazam.gif",
   "arcanine.gif",

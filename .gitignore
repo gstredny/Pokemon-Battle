@@ -4,3 +4,4 @@ uipoki.png
 .claude/
 .venv/
 monsters/cards/
+__pycache__/

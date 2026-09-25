@@ -96,6 +96,8 @@
       }
     }, 10000);
   </script>
+  <script src="card-rules.js"></script>
+  <script src="kid-monsters.js"></script>
   <script type="text/babel">
     const { useState, useRef, useEffect } = React;
 
@@ -162,6 +164,8 @@ const STATUS_DATA = {
 
 // Pokemon with cry types for hurt sounds
 const POKEMON = [
+  // Monsters the kids drew, first so they are easy to find
+  ...KID_CARDS.map((card, i) => monsterFromCard(card, 1000 + i)),
   // Electric
   { id: 25, name: 'Pikachu', type: 'electric', hp: 90, atk: 55, def: 40, spd: 90, img: 'pikachu.gif', cry: 'mouse',
     attacks: [
@@ -1377,7 +1381,7 @@ const PokemonCard = ({ pokemon, selected, onClick, disabled }) => {
     <div onClick={disabled ? null : onClick} style={{ padding: '4px', borderRadius: '10px', background: selected ? typeData.bg : 'linear-gradient(145deg, #2d2d44, #1a1a2e)', border: selected ? '3px solid #FFD700' : '2px solid #444', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1, textAlign: 'center', transition: 'all 0.2s', transform: selected ? 'scale(1.05)' : 'scale(1)', boxShadow: selected ? '0 0 12px rgba(255,215,0,0.6)' : 'none', maxHeight: '99px' }}>
       <img src={pokemon.img} alt={pokemon.name} style={{ width: '56px', height: '56px' }} />
       <div style={{ fontWeight: 'bold', fontSize: '9px', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pokemon.name}</div>
-      <div style={{ fontSize: '10px' }}>{typeData.icon}</div>
+      <div style={{ fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{typeData.icon}{pokemon.madeBy && <span style={{ fontSize: '8px', color: '#FFD700' }}> by {pokemon.madeBy}</span>}</div>
     </div>
   );
 };
