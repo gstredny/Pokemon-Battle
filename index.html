@@ -1335,7 +1335,7 @@ const AnimatedBackground = ({ battle, scene }) => (
 );
 
 // Opening screen. Phones only allow sound after a tap, so it waits for one,
-// then plays the intro with sound effects and ends on the title and a PLAY button.
+// then plays the intro with music and ends on the title and a PLAY button.
 // Tapping during the intro skips to the end.
 const TitleScreen = ({ onPlay, playSound, playAttackSound }) => {
   const [stage, setStage] = useState('tap'); // tap → intro → ready (or skipped)
@@ -1726,6 +1726,11 @@ function PokemonBattle() {
     setFloatingTexts(prev => [...prev, { id, text, color, large, x, y }]);
     setTimeout(() => setFloatingTexts(prev => prev.filter(t => t.id !== id)), 1200);
   };
+
+  // Each part of the game has its own song.
+  useEffect(() => {
+    Music.play(phase === 'title' ? 'title' : phase === 'battle' ? 'battle' : phase === 'gameover' ? 'victory' : 'menu');
+  }, [phase]);
 
   // The 3D battlefield follows the battle: it throws out whichever Pokemon is
   // active, and plays attacks, hits and faints as the battle sets them off.
