@@ -2,6 +2,8 @@
   "./",
   "index.html",
   "manifest.json",
+  "battle3d.js",
+  "vendor/three.min.js",
   "aerodactyl.gif",
   "alakazam.gif",
   "arcanine.gif",

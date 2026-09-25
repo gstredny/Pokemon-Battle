@@ -16,6 +16,27 @@ and use the buttons to throw, attack, heal, recall and faint. Query options:
 `arena` (jungle, ocean, mountains), `t1`/`t2` (trainer ids from `TRAINERS` in
 `index.html`), `p1`/`p2` (a sprite file such as `gengar.gif`), `module` (see below).
 
+## Play the real game from the terminal
+
+```
+npm install --no-save playwright react@18 react-dom@18 @babel/standalone   # once
+node dev/play-check.mjs          # trainers, teams, arena picker, a whole 3D battle
+node dev/play-check.mjs --no3d   # the same on a phone without 3D: must fall back to 2D
+```
+
+It fails naming the step that broke or any error the page logged, and leaves
+screenshots in `dev/shots/`. React and Babel come from `node_modules` in place of
+the CDN, so it runs offline.
+
+## How the game drives the battlefield
+
+`index.html` creates the scene with `Battle3D.create({ container, arena, trainers })`
+and calls into it as the battle state changes: `sendOut(side, pokemon)` when a
+Pokemon becomes active, `recall`, `attack(side, type, kind)`, `hit`, `faint`,
+`swap` (Ditto's Transform) and `anchor(side)` to float damage numbers over a
+Pokemon. Side 1 is the player near the camera. Pokemon are sized from
+`DEX_HEIGHT` (real heights, kept between 0.5 m and 3.5 m tall and 3 m wide).
+
 ## Screenshots from the terminal
 
 ```
