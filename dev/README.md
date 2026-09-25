@@ -52,7 +52,7 @@ game is one import plus `registerArena` in `battle3d.js` and an entry in
 
 Each trainer loads `models/trainers/<id>.glb` and swaps it in for its
 primitive figure once it arrives (the figure stays if the file cannot load).
-All ten are built by one script, from the repo root:
+Every trainer is built by one script, from the repo root:
 
 ```
 blender -b -P dev/blender/build_trainer.py             # every trainer
@@ -62,6 +62,14 @@ blender -b -P dev/blender/build_trainer.py -- ash misty
 `pip install bpy` (Python 3.11) runs it too: `python3.11 dev/blender/build_trainer.py ash`.
 Looks live in `dev/blender/looks.py`; the run fails if a trainer goes over
 15k triangles or 600 KB, or loses a joint or clip.
+
+A new trainer needs a look in `looks.py`, a fallback figure in `TRAINER_LOOKS`
+in `battle3d.js`, an entry in `TRAINERS` in `index.html`, and a pick-screen
+picture. The picture comes from the model:
+
+```
+node dev/trainer-picture.mjs george      # writes george.png (80x80) in the repo root
+```
 
 A trainer model must expose these named objects: `hips`, `torso`, `head`,
 `shoulderL`, `shoulderR`, `elbowL`, `elbowR`, `hipL`, `hipR`, `kneeL`, `kneeR`,
