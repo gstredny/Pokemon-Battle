@@ -73,6 +73,16 @@ test('refuses a Trick the game does not know', () => {
   assert.throws(() => monsterFromCard(card({ powers: { ...card().powers, trick: { name: 'T', does: 'confuse' } } }), 1), /trick "confuse"/);
 });
 
+test('refuses a Trick or Save-Me that only matches a built-in object property', () => {
+  assert.throws(() => monsterFromCard(card({ powers: { ...card().powers, trick: { name: 'T', does: 'constructor' } } }), 1), /trick "constructor"/);
+  assert.throws(() => monsterFromCard(card({ powers: { ...card().powers, saveMe: { name: 'S', does: 'toString' } } }), 1), /save-me "toString"/);
+});
+
+test('refuses names that are not text', () => {
+  assert.throws(() => monsterFromCard(card({ name: { text: 'Probe' } }), 1), /name must be text/);
+  assert.throws(() => monsterFromCard(card({ powers: { ...card().powers, bigHit: { name: 'Chomp' } } }), 1), /Big Hit name must be text/);
+});
+
 test('refuses a missing name', () => {
   assert.throws(() => monsterFromCard(card({ name: '' }), 1), /missing name/);
 });

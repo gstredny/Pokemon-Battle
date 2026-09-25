@@ -14,9 +14,13 @@
   // Records are typed in by hand, so check one before it can break the game.
   function checkCard(card) {
     const problems = [];
+    const needText = (value, label) => {
+      if (value === undefined || value === '') problems.push(`missing ${label}`);
+      else if (typeof value !== 'string') problems.push(`${label} must be text`);
+    };
     if (!/^[a-z0-9-]+$/.test(card.slug || '')) problems.push('slug must be lowercase letters, numbers and dashes');
-    if (!card.name) problems.push('missing name');
-    if (!card.madeBy) problems.push('missing madeBy');
+    needText(card.name, 'name');
+    needText(card.madeBy, 'madeBy');
     if (!TYPES.includes(card.type)) problems.push(`type "${card.type}" is not a game type`);
     if (!CRIES.includes(card.cry)) problems.push(`cry "${card.cry}" is not a known cry`);
     const stars = card.stars || {};
@@ -26,13 +30,13 @@
     const total = STAR_ROWS.reduce((sum, row) => sum + (stars[row] || 0), 0);
     if (total > 10) problems.push(`${total} stars, only 10 allowed`);
     const powers = card.powers || {};
-    if (!powers.bigHit) problems.push('missing Big Hit name');
-    if (!powers.fastHit) problems.push('missing Fast Hit name');
-    if (!powers.trick?.name) problems.push('missing Trick name');
-    if (!(powers.trick?.does in TRICK_EFFECTS)) problems.push(`trick "${powers.trick?.does}" is not a known Trick`);
-    if (!powers.saveMe?.name) problems.push('missing Save-Me name');
-    if (!(powers.saveMe?.does in SAVE_ME_FIELDS)) problems.push(`save-me "${powers.saveMe?.does}" is not a known Save-Me`);
-    if (problems.length) throw new Error(`${card.name || card.slug}: ${problems.join('; ')}`);
+    needText(powers.bigHit, 'Big Hit name');
+    needText(powers.fastHit, 'Fast Hit name');
+    needText(powers.trick?.name, 'Trick name');
+    if (!Object.hasOwn(TRICK_EFFECTS, powers.trick?.does)) problems.push(`trick "${powers.trick?.does}" is not a known Trick`);
+    needText(powers.saveMe?.name, 'Save-Me name');
+    if (!Object.hasOwn(SAVE_ME_FIELDS, powers.saveMe?.does)) problems.push(`save-me "${powers.saveMe?.does}" is not a known Save-Me`);
+    if (problems.length) throw new Error(`${typeof card.name === 'string' && card.name || card.slug}: ${problems.join('; ')}`);
   }
 
   function monsterFromCard(card, id) {
