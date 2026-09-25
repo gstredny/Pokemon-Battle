@@ -937,17 +937,22 @@ function makePokeball() {
 // ---------------------------------------------------------------------------
 // Real heights from the Pokedex (metres), by sprite file name, so Charizard
 // towers over Pikachu. Tiny ones are kept big enough to read on a phone and
-// giants are capped so both sides still fit on screen.
+// giants are capped. Every Pokemon is then drawn SIZE_SCALE times that, so
+// they read clearly on a phone while keeping their sizes relative to each
+// other. Above KNEE the growth eases off, so the very biggest still rank by
+// size but fit on a phone screen.
 const DEX_HEIGHT = {
   aerodactyl: 1.8, alakazam: 1.5, arcanine: 1.9, articuno: 1.7, blastoise: 1.6, chansey: 1.1, charizard: 1.7,
   clefable: 1.3, ditto: 0.3, dragonite: 2.2, exeggutor: 2.0, flareon: 0.9, gengar: 1.5, golem: 1.4, gyarados: 6.5,
   jolteon: 0.8, lapras: 2.5, machamp: 1.6, mew: 0.4, mewtwo: 2.0, moltres: 2.0, nidoking: 1.4, pikachu: 0.4,
   rhydon: 1.9, scyther: 1.5, snorlax: 2.1, tauros: 1.4, vaporeon: 1.0, venusaur: 2.0, zapdos: 1.6,
 };
-const MIN_HEIGHT = 0.5, MAX_HEIGHT = 3.5, MAX_WIDTH = 3.0, UNKNOWN_HEIGHT = 1.2;
+const MIN_HEIGHT = 0.5, MAX_HEIGHT = 3.5, UNKNOWN_HEIGHT = 1.2;
+const SIZE_SCALE = 2.2, KNEE = 3.4, ABOVE_KNEE = 0.35, FIT_WIDTH = 3.6;
 const heightFor = img => {
   const name = String(img || '').split('/').pop().replace(/\.[a-z0-9]+$/i, '').toLowerCase();
-  return clamp(DEX_HEIGHT[name] ?? UNKNOWN_HEIGHT, MIN_HEIGHT, MAX_HEIGHT);
+  const h = clamp(DEX_HEIGHT[name] ?? UNKNOWN_HEIGHT, MIN_HEIGHT, MAX_HEIGHT) * SIZE_SCALE;
+  return h <= KNEE ? h : KNEE + (h - KNEE) * ABOVE_KNEE;
 };
 
 // The box of non-transparent pixels in the sprite's first frame, so the
@@ -1020,7 +1025,7 @@ class PokemonActor {
         // target height; long ones like Gyarados are also held to a width so
         // they do not hide the other side.
         const visH = b.bottom - b.top, visW = b.right - b.left;
-        const target = Math.min(heightFor(pokemon.img), MAX_WIDTH * visH / visW);
+        const target = Math.min(heightFor(pokemon.img), FIT_WIDTH * visH / visW);
         this.worldH = target * h / visH;
         this.drop = (h - b.bottom) / h * this.worldH;
         this.footprint = (b.right - b.left) / h * this.worldH;
@@ -1102,17 +1107,18 @@ const TYPE_COLORS = {
 };
 
 // Where everyone stands and where the camera sits, per phone orientation.
-// Player 1 is near the camera on the left, player 2 far away on the right.
+// Player 1 is near the camera on the left, player 2 far away on the right,
+// standing off to the side so a big Pokemon in front of them does not hide them.
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const LAYOUTS = {
   portrait: {
     1: { trainer: V(-1.6, 0, 3.9), spot: V(-1.25, 0, 1.2) },
-    2: { trainer: V(2.9, 0, -6.6), spot: V(1.35, 0, -3.8) },
+    2: { trainer: V(3.7, 0, -5.9), spot: V(1.35, 0, -3.8) },
     camera: { pos: V(0.1, 5.2, 10.8), look: V(0.05, 1.0, -2.4), fov: 55 },
   },
   landscape: {
     1: { trainer: V(-3.3, 0, 2.6), spot: V(-2.0, 0, 0.5) },
-    2: { trainer: V(3.6, 0, -6.2), spot: V(2.2, 0, -3.6) },
+    2: { trainer: V(4.5, 0, -5.4), spot: V(2.2, 0, -3.6) },
     camera: { pos: V(0.4, 3.6, 9.4), look: V(0.2, 1.1, -1.8), fov: 40 },
   },
 };
