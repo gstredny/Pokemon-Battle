@@ -46,4 +46,35 @@ globalThis.KID_CARDS = [
       saveMe: { name: 'Stone Wall', does: 'tougher' },
     },
   },
+  // Dora: "Froggy is a grass Pokemon. He's very fast and has a strong kick."
+  {
+    slug: 'froggy', name: 'Froggy', madeBy: 'Dora', type: 'grass', cry: 'frog',
+    stats: { hp: 90, atk: 125, def: 55, spd: 155 },
+    powers: {
+      bigHit: 'Mega Kick', fastHit: 'Leaf Hop',
+      trick: { name: 'Sticky Tongue', does: 'zap' },
+      saveMe: { name: 'Lily Pad Nap', does: 'heal' },
+    },
+  },
+  // "An electric Pokemon, similar in power and ability to a Pikachu, but also
+  // like a Ditto-ish Pokemon."
+  {
+    slug: 'allymon', name: 'Allymon', madeBy: 'Dora', type: 'electric', cry: 'mouse',
+    stats: { hp: 95, atk: 60, def: 45, spd: 100 },
+    powers: {
+      bigHit: 'Thunder Squish', fastHit: 'Spark Hug',
+      trick: { name: 'Jelly Zap', does: 'zap' },
+      saveMe: { name: 'Copy Me', does: 'copy' },
+    },
+  },
+  // "Also hard to hit, and a fire Pokemon."
+  {
+    slug: 'smore', name: 'S’more', madeBy: 'Dora', type: 'fire', cry: 'fairy',
+    stats: { hp: 100, atk: 110, def: 75, spd: 140 },
+    powers: {
+      bigHit: 'Campfire Blast', fastHit: 'Ember Puff',
+      trick: { name: 'Hot Goo', does: 'burn' },
+      saveMe: { name: 'Toasty Shield', does: 'tougher' },
+    },
+  },
 ];
