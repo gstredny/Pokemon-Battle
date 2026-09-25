@@ -21,7 +21,7 @@ globalThis.KID_CARDS = [
     stats: { hp: 95, atk: 115, def: 55, spd: 160 },
     powers: {
       bigHit: 'Mega Peck', fastHit: 'Gust',
-      trick: { name: 'Icy Wind', does: 'freeze' },
+      trick: { name: 'Sky Grab', does: 'zap' },
       saveMe: { name: 'Zoom Away', does: 'faster' },
     },
   },
