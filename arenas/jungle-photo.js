@@ -17,8 +17,8 @@ const CAMERA = new THREE.Vector3(0.3, 4.5, 10);   // roughly where both camera p
 // Where each model is scattered. Only rocks and boulders inside the shadow box
 // cast shadows: anything that does costs its triangles twice.
 const SCATTER = {
-  fern:    { count: 40, near: 7.8, far: 30, scale: [0.8, 1.5], shadow: false },
-  shrub:   { count: 18, near: 9,   far: 34, scale: [0.8, 1.4], shadow: false },
+  fern:    { count: 32, near: 7.8, far: 30, scale: [0.8, 1.5], shadow: false },
+  shrub:   { count: 14, near: 9,   far: 34, scale: [0.8, 1.4], shadow: false },
   rocks:   { count: 10, near: 9,   far: 36, scale: [0.8, 1.6], shadow: true },
   boulder: { count: 6,  near: 11,  far: 40, scale: [0.7, 1.4], shadow: true },
 };
@@ -193,13 +193,13 @@ async function load(scene, rng, sun) {
   bg.wrapS = THREE.RepeatWrapping;
   bg.repeat.x = -1;
   bg.offset.x = 1;
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(480, 48, 24), new THREE.MeshBasicMaterial({ map: bg, side: THREE.BackSide, toneMapped: false, fog: false, depthWrite: false }));
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(480, 32, 16), new THREE.MeshBasicMaterial({ map: bg, side: THREE.BackSide, toneMapped: false, fog: false, depthWrite: false }));
   sky.renderOrder = -1;
   sky.frustumCulled = false;
   scene.add(sky);
   scene.fog = new THREE.FogExp2(horizonColor(bg.image), 0.011);
 
-  const groundGeo = new THREE.PlaneGeometry(220, 220, 90, 90);
+  const groundGeo = new THREE.PlaneGeometry(220, 220, 72, 72);
   groundGeo.rotateX(-Math.PI / 2);
   const pos = groundGeo.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setY(i, groundHeight(pos.getX(i), pos.getZ(i)));
