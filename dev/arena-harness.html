@@ -22,7 +22,7 @@
   window.addEventListener('unhandledrejection', e => window.errors.push('rejection: ' + (e.reason && e.reason.message || e.reason)));
   const q = new URLSearchParams(location.search);
   // A kid monster's picture (monsters/<slug>.png) comes with its 3D model, as in the game.
-  const pokemon = (img, name, type) => ({ img: '../' + img, name, type, model: img.startsWith('monsters/') ? '../models/' + img.replace(/\.png$/, '.glb') : undefined });
+  const pokemon = (img, name, type) => ({ img: '../' + img, name, type, model: img.startsWith('monsters/') ? '../models/' + img.replace(/\.png$/, '.glb') : undefined, aura: img === 'monsters/smore.png' ? 'flames' : undefined });
   const P1 = pokemon(q.get('p1') || 'pikachu.gif', 'P1', 'electric');
   const P2 = pokemon(q.get('p2') || 'charizard.gif', 'P2', 'fire');
   window.send = side => window.scene.sendOut(side, side === 1 ? P1 : P2);

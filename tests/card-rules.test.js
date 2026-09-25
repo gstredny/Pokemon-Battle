@@ -64,6 +64,12 @@ test('power words map to battle effects', () => {
   assert.equal(moves('zap', 'copy')[3].transform, true);
 });
 
+test('a monster drawn inside flames keeps them in the 3D battle', () => {
+  assert.equal(monsterFromCard(card({ aura: 'flames' }), 1).aura, 'flames');
+  assert.equal(monsterFromCard(card(), 1).aura, undefined);
+  assert.throws(() => monsterFromCard(card({ aura: 'rainbow' }), 1), /aura "rainbow"/);
+});
+
 test('any type the game knows is allowed', () => {
   assert.equal(monsterFromCard(card({ type: 'dark' }), 1).type, 'dark');
 });

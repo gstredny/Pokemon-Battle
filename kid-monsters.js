@@ -70,6 +70,7 @@ globalThis.KID_CARDS = [
   // "Also hard to hit, and a fire Pokemon."
   {
     slug: 'smore', name: 'S’more', madeBy: 'Dora', type: 'fire', cry: 'fairy',
+    aura: 'flames',   // drawn inside a ring of fire; the 3D model burns the same way
     stats: { hp: 100, atk: 110, def: 75, spd: 140 },
     powers: {
       bigHit: 'Campfire Blast', fastHit: 'Ember Puff',
