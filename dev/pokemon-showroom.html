@@ -119,10 +119,20 @@
         diffuseColor *= texture2D(map, texel / texSize);`)
       .replace('#include <emissivemap_fragment>', 'totalEmissiveRadiance *= diffuseColor.rgb;');
   };
-  sprite.position.y = PLINTH_H;
   sprite.castShadow = true;
-  sprite.visible = false;
-  scene.add(sprite);
+  // The card turns to face the camera around the middle of the plinth.
+  const card = new THREE.Group();
+  card.position.y = PLINTH_H;
+  card.visible = false;
+  card.add(sprite);
+  scene.add(card);
+  // How far the body sits from the middle of the GIF frame, in sprite pixels,
+  // averaged over every frame, so the Pokemon itself stands on the centre.
+  const bodyOffset = gif => {
+    let sum = 0, count = 0;
+    for (const { pixels } of gif.frames) for (let i = 3; i < pixels.length; i += 4) if (pixels[i]) { sum += (i >> 2) % gif.width + 0.5; count++; }
+    return sum / count - gif.width / 2;
+  };
 
   let anim = null;
   const paint = k => {
@@ -201,9 +211,11 @@
     paint(0);
     sprite.material.map = texture;
     sprite.material.needsUpdate = true;
-    sprite.visible = true;
+    card.visible = true;
     const w = gif.width * PIXEL_TO_WORLD;
     view.h = gif.height * PIXEL_TO_WORLD;
+    sprite.scale.set(w, view.h, 1);
+    sprite.position.x = -bodyOffset(gif) * PIXEL_TO_WORLD;
     view.plinth = THREE.MathUtils.clamp(0.3 + 0.4 * w, 0.6, 1.05);
     view.w = Math.max(w, view.plinth * 2);
     contact.scale.set(w * 0.42, w * 0.42 * 0.6, 1);
@@ -228,8 +240,8 @@
       while (t >= anim.ends[k]) k++;
       if (k !== anim.shown) paint(k);
       const pop = still ? 1 : 1 - 0.3 * (1 - Math.min(1, (now - anim.start) / 350)) ** 3;   // lands on the plinth when picked
-      sprite.scale.set(anim.gif.width * PIXEL_TO_WORLD * pop, view.h * pop, 1);
-      sprite.rotation.y = Math.atan2(camera.position.x, camera.position.z);
+      card.scale.setScalar(pop);
+      card.rotation.y = Math.atan2(camera.position.x, camera.position.z);
     }
     renderer.render(scene, camera);
   });
