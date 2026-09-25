@@ -77,4 +77,36 @@ globalThis.KID_CARDS = [
       saveMe: { name: 'Toasty Shield', does: 'tougher' },
     },
   },
+  // Georgie: "Whaley is a water Pokemon, he's big, not super fast, but can have
+  // a big hit and it shoots sonic waves with its sound like whale sounds."
+  {
+    slug: 'whalley', name: 'Whalley', madeBy: 'Georgie', type: 'water', cry: 'whale',
+    stats: { hp: 170, atk: 130, def: 85, spd: 40 },
+    powers: {
+      bigHit: 'Sonic Wave', fastHit: 'Water Splash',
+      trick: { name: 'Whale Song', does: 'sleep' },
+      saveMe: { name: 'Deep Breath', does: 'heal' },
+    },
+  },
+  // "The grass Pokemon, it's kind of slow but it has like kind of a hypnosis
+  // for type of attacks."
+  {
+    slug: 'grassmic', name: 'Grassmic', madeBy: 'Georgie', type: 'grass', cry: 'plant',
+    stats: { hp: 140, atk: 100, def: 125, spd: 60 },
+    powers: {
+      bigHit: 'Leaf Storm', fastHit: 'Vine Whip',
+      trick: { name: 'Hypno Leaves', does: 'sleep' },
+      saveMe: { name: 'Sunshine Snack', does: 'heal' },
+    },
+  },
+  // "Electric, similar to most electric Pokemon."
+  {
+    slug: 'alltrik', name: 'Alltrik', madeBy: 'Georgie', type: 'electric', cry: 'canine',
+    stats: { hp: 100, atk: 115, def: 70, spd: 140 },
+    powers: {
+      bigHit: 'Thunder Spikes', fastHit: 'Spark Dash',
+      trick: { name: 'Static Shock', does: 'zap' },
+      saveMe: { name: 'Supercharge', does: 'stronger' },
+    },
+  },
 ];
