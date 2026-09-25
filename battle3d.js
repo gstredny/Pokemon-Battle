@@ -569,6 +569,11 @@ const TRAINER_LOOKS = {
   erika:    { skin: '#f7dcc8', hair: '#263238', style: 'long', shirt: '#d9c56a', sleeves: '#d9c56a', pants: '#b23a48', shoes: '#333333', hands: '#f7dcc8', headband: '#d32f2f' },
   prof:     { skin: '#f3c99a', hair: '#c9c9c9', style: 'short', shirt: '#7b1fa2', sleeves: '#f5f5f5', coat: '#f5f5f5', pants: '#5d4037', shoes: '#222222', hands: '#f3c99a' },
   giovanni: { skin: '#e8c39e', hair: '#111111', style: 'short', shirt: '#e65100', sleeves: '#e65100', pants: '#e65100', shoes: '#111111', hands: '#e8c39e', tie: '#111111' },
+  george:   { skin: '#f0c4a8', hair: '#5e4230', style: 'short', shirt: '#27324f', sleeves: '#27324f', pants: '#5470a0', shoes: '#e8e8e8', hands: '#f0c4a8' },
+  lauren:   { skin: '#efc6a8', hair: '#5a3a26', style: 'long', shirt: '#f1e7d6', sleeves: '#efc6a8', pants: '#4a6391', shoes: '#c49a6c', hands: '#efc6a8' },
+  georgie:  { skin: '#f4cdb2', hair: '#d8b878', style: 'short', shirt: '#f7f7f5', sleeves: '#f7f7f5', pants: '#1f1f24', shoes: '#2a2a2a', hands: '#f4cdb2' },
+  dora:     { skin: '#f6d3bd', hair: '#d6ad7a', style: 'long', shirt: '#cbb7df', sleeves: '#cbb7df', pants: '#cbb7df', shoes: '#e89bb5', hands: '#f6d3bd' },
+  winnie:   { skin: '#f6d3bd', hair: '#d9a870', style: 'long', shirt: '#f4f6fa', sleeves: '#f4f6fa', pants: '#5d6068', shoes: '#f2f2f2', hands: '#f6d3bd' },
 };
 
 function std(color, extra = {}) {

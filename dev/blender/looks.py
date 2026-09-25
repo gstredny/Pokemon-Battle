@@ -106,4 +106,49 @@ LOOKS = {
             'pants': '#e65100', 'shoe': '#111111', 'sole': '#333333',
         },
     },
+    'george': {
+        'hair': 'short', 'top': 'shirt', 'sleeve': 'short', 'glove': 'none', 'legs': 'long',
+        'extras': ['mustache'],
+        'palette': {
+            'skin': '#f0c4a8', 'hair': '#5e4230', 'iris': '#5b8fb9', 'mouth': '#8a3b3b',
+            'top': '#27324f', 'sleeve': '#27324f',
+            'pants': '#5470a0', 'shoe': '#e8e8e8', 'sole': '#9e9e9e',
+        },
+    },
+    'lauren': {
+        'hair': 'long', 'top': 'tank', 'sleeve': 'none', 'glove': 'none', 'legs': 'long',
+        'extras': ['pendant'],
+        'palette': {
+            'skin': '#efc6a8', 'hair': '#5a3a26', 'iris': '#6b4a2e', 'mouth': '#b0555a',
+            'top': '#f1e7d6', 'pendant': '#dfe3ea',
+            'pants': '#4a6391', 'shoe': '#c49a6c', 'sole': '#8a6a48',
+        },
+    },
+    'georgie': {
+        'hair': 'short', 'top': 'shirt', 'sleeve': 'long', 'glove': 'none', 'legs': 'long',
+        'extras': [], 'size': 0.74, 'head': 1.25,
+        'palette': {
+            'skin': '#f4cdb2', 'hair': '#d8b878', 'iris': '#4f86b8', 'mouth': '#a84a4a',
+            'top': '#f7f7f5', 'sleeve': '#f7f7f5',
+            'pants': '#1f1f24', 'shoe': '#2a2a2a', 'sole': '#555555',
+        },
+    },
+    'dora': {
+        'hair': 'long', 'top': 'shirt', 'sleeve': 'short', 'glove': 'none', 'legs': 'skirt',
+        'extras': [], 'size': 0.66, 'head': 1.3,
+        'palette': {
+            'skin': '#f6d3bd', 'hair': '#d6ad7a', 'iris': '#4f86b8', 'mouth': '#c05a60',
+            'top': '#cbb7df', 'sleeve': '#cbb7df', 'skirt': '#cbb7df',
+            'pants': '#cbb7df', 'shoe': '#e89bb5', 'sole': '#f2f2f2',
+        },
+    },
+    'winnie': {
+        'hair': 'bob', 'top': 'shirt', 'sleeve': 'long', 'glove': 'none', 'legs': 'shorts',
+        'extras': [], 'size': 0.58, 'head': 1.38,
+        'palette': {
+            'skin': '#f6d3bd', 'hair': '#d9a870', 'iris': '#4f86b8', 'mouth': '#c05a60',
+            'top': '#f4f6fa', 'sleeve': '#f4f6fa',
+            'pants': '#5d6068', 'shoe': '#f2f2f2', 'sole': '#bdbdbd',
+        },
+    },
 }
