@@ -62,6 +62,11 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- The 3D battlefield, loaded on its own: if a phone cannot run it, the
+       import fails quietly and the game uses the classic 2D battle. -->
+  <script type="module">
+    import('./battle3d.js').catch(function (err) { console.warn('3D battlefield unavailable:', err); });
+  </script>
 </head>
 <body>
   <div id="root">
@@ -100,7 +105,7 @@
   <script src="kid-monsters.js"></script>
   <script src="music.js"></script>
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useRef, useEffect } = React;
 
 // True when the phone is turned sideways, so the battle can lay itself out
 // across the screen instead of down it.
@@ -1470,8 +1475,8 @@ const VSScreen = ({ team1, team2, trainer1, trainer2, onComplete }) => {
   );
 };;
 
-const FloatingText = ({ text, color, large, x }) => (
-  <div style={{ position: 'absolute', left: x || '50%', top: '35%', transform: 'translate(-50%, -50%)', fontSize: large ? '40px' : '28px', fontWeight: 'bold', color: color || 'white', textShadow: `0 0 12px ${color || 'white'}, 0 0 24px ${color || 'white'}, 2px 2px 0 #000`, animation: 'floatUp 1.2s ease-out forwards', zIndex: 1000, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+const FloatingText = ({ text, color, large, x, y }) => (
+  <div style={{ position: 'absolute', left: x || '50%', top: y || '35%', transform: 'translate(-50%, -50%)', fontSize: large ? '40px' : '28px', fontWeight: 'bold', color: color || 'white', textShadow: `0 0 12px ${color || 'white'}, 0 0 24px ${color || 'white'}, 2px 2px 0 #000`, animation: 'floatUp 1.2s ease-out forwards', zIndex: 1000, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
     <style>{`@keyframes floatUp { 0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); } 20% { transform: translate(-50%, -50%) scale(1.2); } 40% { transform: translate(-50%, -60%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -120%) scale(0.8); } }`}</style>
     {text}
   </div>
@@ -1597,6 +1602,80 @@ const TeamIndicator = ({ team, hpArray, activeIndex, statuses, onSwitch, canSwit
   </div>
 );
 
+// True when the 3D engine loaded and this phone can draw 3D graphics.
+const can3D = () => {
+  if (!window.Battle3D) return false;
+  try {
+    const gl = document.createElement('canvas').getContext('webgl2') || document.createElement('canvas').getContext('webgl');
+    if (!gl) return false;
+    const lose = gl.getExtension('WEBGL_lose_context');
+    if (lose) lose.loseContext();
+    return true;
+  } catch (e) { return false; }
+};
+
+// The 3D battlefield (battle3d.js) filling its parent. Made once per battle;
+// hands the scene up through onReady, or reports onError so the game can fall
+// back to the classic battle.
+const Battle3DStage = ({ arena, trainers, onReady, onError }) => {
+  const ref = useRef(null);
+  useEffect(() => {
+    let scene = null;
+    try {
+      scene = window.Battle3D.create({ container: ref.current, arena, trainers });
+      scene.onError = onError;
+      onReady(scene);
+    } catch (err) {
+      console.error(err);
+      onError(err);
+    }
+    return () => { if (scene) scene.dispose(); };
+  }, []);
+  return <div ref={ref} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }} />;
+};
+
+// A trainer's box floating over the 3D battlefield: their team (tap to
+// switch), the Pokemon that is out, its status, boosts and health.
+const HudCard = ({ trainer, team, hpArray, activeIndex, statuses, boosts, isTurn, canSwitch, onSwitch, style }) => {
+  const pokemon = team[activeIndex];
+  const typeData = TYPE_DATA[pokemon.type] || TYPE_DATA.normal;
+  const status = statuses[activeIndex];
+  const statusInfo = status ? STATUS_DATA[status] : null;
+  const b = boosts[activeIndex] || {};
+  const hp = hpArray[activeIndex];
+  return (
+    <div style={{ position: 'absolute', zIndex: 2, width: '196px', padding: '5px 7px', borderRadius: '10px', background: 'rgba(14,16,28,0.8)', border: `2px solid ${isTurn ? '#FFD700' : trainer.color}`, boxShadow: isTurn ? '0 0 10px #FFD700' : '0 2px 6px rgba(0,0,0,0.5)', color: 'white', ...style }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+        <img src={trainer.img} alt={trainer.name} style={{ width: '16px', height: '16px', imageRendering: 'pixelated' }} />
+        <span style={{ color: trainer.color, textShadow: '0 1px 2px #000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{trainer.name}</span>
+        {isTurn && <span style={{ color: '#FFD700', animation: 'pulse 1s infinite' }}>★</span>}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '3px' }}>
+          {team.map((p, i) => {
+            const alive = hpArray[i] > 0;
+            const clickable = canSwitch && alive && i !== activeIndex;
+            return (
+              <div key={i} onClick={clickable ? () => onSwitch(i) : null} style={{ width: '30px', height: '30px', borderRadius: '50%', background: i === activeIndex ? '#FFD700' : alive ? (TYPE_DATA[p.type] || TYPE_DATA.normal).color : '#444', opacity: alive ? 1 : 0.4, border: clickable ? '2px solid #4CAF50' : '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: clickable ? 'pointer' : 'default', position: 'relative' }}>
+                <img src={p.img} alt={p.name} style={{ width: '28px', height: '28px' }} />
+                {statuses[i] && <div style={{ position: 'absolute', bottom: 0, right: 0, fontSize: '7px', background: STATUS_DATA[statuses[i]].color, borderRadius: '50%', width: '10px', height: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{STATUS_DATA[statuses[i]].icon}</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', margin: '3px 0', fontSize: '12px', fontWeight: 'bold', flexWrap: 'wrap' }}>
+        <span>{typeData.icon}</span>
+        <span>{pokemon.name}</span>
+        {statusInfo && <span style={{ padding: '1px 4px', borderRadius: '4px', background: statusInfo.color, fontSize: '9px' }}>{statusInfo.icon} {statusInfo.name}</span>}
+        {b.atk > 0 && <span style={{ background: '#E53935', padding: '1px 3px', borderRadius: '3px', fontSize: '8px' }}>+{b.atk}ATK</span>}
+        {b.def > 0 && <span style={{ background: '#2196F3', padding: '1px 3px', borderRadius: '3px', fontSize: '8px' }}>+{b.def}DEF</span>}
+        {b.spd > 0 && <span style={{ background: '#4CAF50', padding: '1px 3px', borderRadius: '3px', fontSize: '8px' }}>+{b.spd}SPD</span>}
+      </div>
+      <HealthBar current={hp} max={pokemon.hp} />
+      <div style={{ fontSize: '10px', color: '#bbb', marginTop: '2px', textAlign: 'right', fontFamily: 'monospace' }}>{hp}/{pokemon.hp}</div>
+    </div>
+  );
+};
+
 function PokemonBattle() {
   const [phase, setPhase] = useState('title');
   const [trainer1, setTrainer1] = useState(null);
@@ -1626,16 +1705,62 @@ function PokemonBattle() {
   const [showVS, setShowVS] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [scene, setScene] = useState(null);
+  const [use3D, setUse3D] = useState(false);
+  const [scene3d, setScene3d] = useState(null);
+  const [busy3D, setBusy3D] = useState(0);
+  const scene3dRef = useRef(null);
+  scene3dRef.current = scene3d;
   
   const { playSound, playAttackSound, playPokemonCry } = useSound();
   const landscape = useIsLandscape();
 
   const addFloatingText = (text, color, large = false, side = null) => {
     const id = Date.now() + Math.random();
-    const x = side === 'left' ? '25%' : side === 'right' ? '75%' : '50%';
-    setFloatingTexts(prev => [...prev, { id, text, color, large, x }]);
+    let x = side === 'left' ? '25%' : side === 'right' ? '75%' : '50%', y = null;
+    // Over the 3D battlefield, float the text over that side's Pokemon.
+    const s3 = scene3dRef.current;
+    if (s3 && side) {
+      const a = s3.anchor(side === 'left' ? 1 : 2);
+      if (a) { x = `${Math.round(a.x)}px`; y = `${Math.round(a.y)}px`; }
+    }
+    setFloatingTexts(prev => [...prev, { id, text, color, large, x, y }]);
     setTimeout(() => setFloatingTexts(prev => prev.filter(t => t.id !== id)), 1200);
   };
+
+  // The 3D battlefield follows the battle: it throws out whichever Pokemon is
+  // active, and plays attacks, hits and faints as the battle sets them off.
+  // While a Pokemon is still coming out of its ball, moves wait (busy3D).
+  const track3D = promise => {
+    setBusy3D(n => n + 1);
+    const safety = new Promise(resolve => setTimeout(resolve, 6000));
+    Promise.race([promise, safety]).finally(() => setBusy3D(n => Math.max(0, n - 1)));
+  };
+  const sentOut = useRef({ 1: null, 2: null });
+  useEffect(() => { sentOut.current = { 1: null, 2: null }; setBusy3D(0); }, [scene3d]);
+  const activeKey = (team, i) => (phase === 'battle' && team[i] ? `${i}|${team[i].img}` : null);
+  const p1Key = activeKey(player1Team, player1Active);
+  const p2Key = activeKey(player2Team, player2Active);
+  useEffect(() => {
+    if (!scene3d) return;
+    [[1, p1Key, player1Team[player1Active]], [2, p2Key, player2Team[player2Active]]].forEach(([side, key, pokemon]) => {
+      const prev = sentOut.current[side];
+      if (!key || key === prev) return;
+      sentOut.current[side] = key;
+      if (prev === null) {
+        // Opening throws: player 1 first, player 2 a moment later.
+        const wait = new Promise(resolve => setTimeout(resolve, side === 2 ? 700 : 0));
+        track3D(wait.then(() => scene3d.sendOut(side, pokemon)));
+      } else if (prev.split('|')[0] === key.split('|')[0]) {
+        track3D(scene3d.swap(side, pokemon)); // same slot, new look: Ditto transformed
+      } else {
+        scene3d.recall(side); // no-op if it already fainted
+        track3D(scene3d.sendOut(side, pokemon));
+      }
+    });
+  }, [scene3d, p1Key, p2Key]);
+  useEffect(() => { if (scene3d && attackAnim) scene3d.attack(attackAnim.side === 'left' ? 1 : 2, attackAnim.type, attackAnim.kind); }, [scene3d, attackAnim]);
+  useEffect(() => { if (scene3d && flashTarget) scene3d.hit(flashTarget); }, [scene3d, flashTarget]);
+  useEffect(() => { if (scene3d && faintingPokemon) scene3d.faint(faintingPokemon); }, [scene3d, faintingPokemon]);
 
   const resetGame = () => {
     setPhase('trainer1'); setTrainer1(null); setTrainer2(null);
@@ -1646,6 +1771,7 @@ function PokemonBattle() {
     setPlayer1SleepTurns([0,0,0]); setPlayer2SleepTurns([0,0,0]);
     setTurn(1); setMessage(''); setWinner(null); setAnimating(false); setFloatingTexts([]);
     setShowVS(false); setShowConfetti(false); setScene(null);
+    setUse3D(false); setScene3d(null); setBusy3D(0);
   };
 
   const goBack = () => {
@@ -1674,7 +1800,7 @@ function PokemonBattle() {
   const onVSComplete = () => { setShowVS(false); setPlayer1HP(player1Team.map(p => p.hp)); setPlayer2HP(player2Team.map(p => p.hp)); setPhase('battle'); setMessage(`Battle Start! ${trainer1.name}'s turn!`); };
 
   const handleSwitch = (newIndex) => {
-    if (animating) return;
+    if (animating || busy3D) return;
     setAnimating(true);
     const isP1 = turn === 1;
     const team = isP1 ? player1Team : player2Team;
@@ -1686,7 +1812,7 @@ function PokemonBattle() {
   };
 
   const doAttack = (attack) => {
-    if (animating) return;
+    if (animating || busy3D) return;
     setAnimating(true);
 
     const isP1 = turn === 1;
@@ -1745,7 +1871,7 @@ function PokemonBattle() {
     // Play attack sound based on type!
     playAttackSound(attack.type);
     
-    setAttackAnim({ type: attack.type, side: attackerSide });
+    setAttackAnim({ type: attack.type, side: attackerSide, kind: attack.heal || attack.fullHeal ? 'heal' : attack.boostAtk || attack.boostDef || attack.boostSpd || attack.transform ? 'boost' : 'attack' });
     setTimeout(() => setAttackAnim(null), 600);
 
     setTimeout(() => {
@@ -2078,7 +2204,7 @@ function PokemonBattle() {
             })}
           </div>
           {scene && (
-            <button onClick={startBattle} style={{
+            <button onClick={() => { setUse3D(can3D()); startBattle(); }} style={{
               marginTop: '12px', padding: '10px 30px', fontSize: '16px', fontWeight: 'bold',
               background: 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)', color: 'white',
               border: '2px solid #81C784', borderRadius: '10px', cursor: 'pointer'
@@ -2087,6 +2213,46 @@ function PokemonBattle() {
             </button>
           )}
         </div>
+      </div>
+    );
+  }
+
+  if (phase === 'battle' && use3D) {
+    const p1Pokemon = player1Team[player1Active];
+    const p2Pokemon = player2Team[player2Active];
+    const currentPokemon = turn === 1 ? p1Pokemon : p2Pokemon;
+    const currentTrainer = turn === 1 ? trainer1 : trainer2;
+    const defenderType = turn === 1 ? p2Pokemon.type : p1Pokemon.type;
+    const locked = animating || busy3D > 0;
+    // The battlefield fills the space the move buttons leave: above them when
+    // upright, to their left when the phone is turned. The tree keeps the same
+    // shape either way so turning the phone does not rebuild the 3D scene.
+    return (
+      <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', background: '#000' }}>
+        {screenFlash && <ScreenFlash color={screenFlash} />}
+        <div style={{ position: 'relative', zIndex: 3, textAlign: 'center', padding: '4px 10px', background: 'rgba(0,0,0,0.75)' }}>
+          <div style={{ color: currentTrainer.color, fontSize: '16px', fontWeight: 'bold' }}>{message}</div>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: landscape ? 'row' : 'column' }}>
+          <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
+            <Battle3DStage arena={scene.id} trainers={[trainer1.id, trainer2.id]} onReady={setScene3d} onError={() => { setScene3d(null); setUse3D(false); }} />
+            <HudCard trainer={trainer2} team={player2Team} hpArray={player2HP} activeIndex={player2Active} statuses={player2Status} boosts={player2Boosts} isTurn={turn === 2} canSwitch={turn === 2 && !locked} onSwitch={handleSwitch} style={{ top: '6px', left: '6px' }} />
+            <HudCard trainer={trainer1} team={player1Team} hpArray={player1HP} activeIndex={player1Active} statuses={player1Status} boosts={player1Boosts} isTurn={turn === 1} canSwitch={turn === 1 && !locked} onSwitch={handleSwitch} style={{ bottom: '6px', right: '6px' }} />
+            {floatingTexts.map(ft => <FloatingText key={ft.id} text={ft.text} color={ft.color} large={ft.large} x={ft.x} y={ft.y} />)}
+          </div>
+          <div style={{ flexShrink: 0, width: landscape ? '300px' : '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', background: 'linear-gradient(180deg, #151a2c, #0d1020)' }}>
+            <div style={{ width: '100%', maxWidth: '360px', background: 'rgba(0,0,0,0.6)', borderRadius: '10px', padding: '6px', border: `2px solid ${currentTrainer.color}` }}>
+              <div style={{ fontSize: '14px', color: '#FFD700', marginBottom: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                <img src={currentPokemon.img} alt={currentPokemon.name} style={{ width: '28px', height: '28px' }} />
+                {currentTrainer.name}'s {currentPokemon.name}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2px' }}>
+                {currentPokemon.attacks.map((attack, i) => <AttackButton key={i} attack={attack} disabled={locked} onClick={() => doAttack(attack)} defenderType={defenderType} slotIndex={i} />)}
+              </div>
+            </div>
+          </div>
+        </div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
       </div>
     );
   }

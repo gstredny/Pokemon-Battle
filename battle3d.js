@@ -9,6 +9,8 @@
 // that model must expose are listed next to buildTrainer().
 import * as THREE from './vendor/three.min.js';
 import { GLTFLoader } from './vendor/GLTFLoader.min.js';
+import volcano from './arenas/volcano.js';
+import cave from './arenas/cave.js';
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -550,6 +552,8 @@ function registerArena(def) {
   ['id', 'name', 'icon', 'css', 'build'].forEach(k => { if (!def[k]) throw new Error(`Arena is missing "${k}"`); });
   ARENAS[def.id] = def;
 }
+registerArena(volcano);
+registerArena(cave);
 const listArenas = () => Object.values(ARENAS).map(({ id, name, icon, blurb, css }) => ({ id, name, icon, blurb, css }));
 
 // ---------------------------------------------------------------------------
@@ -931,7 +935,48 @@ function makePokeball() {
 // A Pokemon standing in the scene: its animated sprite drawn as a billboard in
 // a DOM layer over the canvas, plus a soft shadow on the ground in WebGL.
 // ---------------------------------------------------------------------------
-const PIXEL_TO_WORLD = 0.024;
+// Real heights from the Pokedex (metres), by sprite file name, so Charizard
+// towers over Pikachu. Tiny ones are kept big enough to read on a phone and
+// giants are capped so both sides still fit on screen.
+const DEX_HEIGHT = {
+  aerodactyl: 1.8, alakazam: 1.5, arcanine: 1.9, articuno: 1.7, blastoise: 1.6, chansey: 1.1, charizard: 1.7,
+  clefable: 1.3, ditto: 0.3, dragonite: 2.2, exeggutor: 2.0, flareon: 0.9, gengar: 1.5, golem: 1.4, gyarados: 6.5,
+  jolteon: 0.8, lapras: 2.5, machamp: 1.6, mew: 0.4, mewtwo: 2.0, moltres: 2.0, nidoking: 1.4, pikachu: 0.4,
+  rhydon: 1.9, scyther: 1.5, snorlax: 2.1, tauros: 1.4, vaporeon: 1.0, venusaur: 2.0, zapdos: 1.6,
+};
+const MIN_HEIGHT = 0.5, MAX_HEIGHT = 3.5, MAX_WIDTH = 3.0, UNKNOWN_HEIGHT = 1.2;
+const heightFor = img => {
+  const name = String(img || '').split('/').pop().replace(/\.[a-z0-9]+$/i, '').toLowerCase();
+  return clamp(DEX_HEIGHT[name] ?? UNKNOWN_HEIGHT, MIN_HEIGHT, MAX_HEIGHT);
+};
+
+// The box of non-transparent pixels in the sprite's first frame, so the
+// Pokemon itself (not its padded canvas) is sized and stands on the ground.
+function opaqueBounds(img) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+  try {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(img, 0, 0);
+    const a = g.getImageData(0, 0, w, h).data;
+    let top = h, bottom = -1, left = w, right = -1;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (a[(y * w + x) * 4 + 3] > 16) {
+          if (y < top) top = y;
+          if (y > bottom) bottom = y;
+          if (x < left) left = x;
+          if (x > right) right = x;
+        }
+      }
+    }
+    if (bottom < 0) return null;
+    return { top, bottom: bottom + 1, left, right: right + 1 };
+  } catch (err) {
+    return null; // e.g. a sprite from another site the canvas may not read
+  }
+}
 
 class PokemonActor {
   constructor(layer, scene, mirror) {
@@ -954,6 +999,8 @@ class PokemonActor {
     this.visible = false;
     this.aspect = 1;
     this.worldH = 1.6;
+    this.drop = 0;
+    this.footprint = 1.2;
     this.shadow = new THREE.Mesh(new THREE.CircleGeometry(1, 24), new THREE.MeshBasicMaterial({ map: SHADOW_DOT(), transparent: true, depthWrite: false, color: '#000000' }));
     this.shadow.rotation.x = -Math.PI / 2;
     this.shadow.renderOrder = 2;
@@ -967,12 +1014,23 @@ class PokemonActor {
     this.ready = new Promise(resolve => {
       const done = () => {
         const w = this.el.naturalWidth || 80, h = this.el.naturalHeight || 80;
+        const b = opaqueBounds(this.el) || { top: 0, bottom: h, left: 0, right: w };
         this.aspect = w / h;
-        this.worldH = h * PIXEL_TO_WORLD;
+        // The whole canvas is drawn, so scale it until the visible part is the
+        // target height; long ones like Gyarados are also held to a width so
+        // they do not hide the other side.
+        const visH = b.bottom - b.top, visW = b.right - b.left;
+        const target = Math.min(heightFor(pokemon.img), MAX_WIDTH * visH / visW);
+        this.worldH = target * h / visH;
+        this.drop = (h - b.bottom) / h * this.worldH;
+        this.footprint = (b.right - b.left) / h * this.worldH;
         resolve();
       };
       if (this.el.complete && this.el.naturalWidth) done();
-      else { this.el.onload = done; this.el.onerror = () => { this.worldH = 1.6; resolve(); }; }
+      else {
+        this.el.onload = done;
+        this.el.onerror = () => { this.worldH = heightFor(pokemon.img); this.drop = 0; this.footprint = this.worldH * 0.8; resolve(); };
+      }
     });
     return this.ready;
   }
@@ -984,7 +1042,7 @@ class PokemonActor {
       return;
     }
     tmpA.copy(this.pos).add(this.offset);
-    tmpA.y += this.rise;
+    tmpA.y += this.rise - this.drop * s;
     tmpB.copy(tmpA);
     tmpB.y += this.worldH * s;
     tmpA.project(camera);
@@ -1000,10 +1058,11 @@ class PokemonActor {
     this.el.style.transform = `translate3d(${(fx - pw / 2).toFixed(1)}px, ${(fy - ph).toFixed(1)}px, 0) rotate(${this.rot.toFixed(2)}deg)${this.mirror ? ' scaleX(-1)' : ''}`;
     this.shadow.visible = true;
     this.shadow.position.set(this.pos.x + this.offset.x, 0.02, this.pos.z + this.offset.z);
-    const sw = this.worldH * this.aspect * 0.42 * s;
+    const sw = this.footprint * 0.55 * s;
     this.shadow.scale.set(sw, sw * 0.6, 1);
     this.shadow.material.opacity = clamp(1 - this.rise * 0.6, 0, 1) * this.opacity;
     this.center = { x: fx, y: fy - ph / 2 };
+    this.top = fy - ph;
   }
   dispose() {
     this.el.remove();
@@ -1047,16 +1106,18 @@ const TYPE_COLORS = {
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const LAYOUTS = {
   portrait: {
-    1: { trainer: V(-1.35, 0, 3.7), spot: V(-0.9, 0, 0.8) },
-    2: { trainer: V(2.7, 0, -6.4), spot: V(1.0, 0, -3.6) },
+    1: { trainer: V(-1.6, 0, 3.9), spot: V(-1.25, 0, 1.2) },
+    2: { trainer: V(2.9, 0, -6.6), spot: V(1.35, 0, -3.8) },
     camera: { pos: V(0.1, 5.2, 10.8), look: V(0.05, 1.0, -2.4), fov: 55 },
   },
   landscape: {
-    1: { trainer: V(-3.1, 0, 2.6), spot: V(-1.6, 0, 0.4) },
-    2: { trainer: V(3.4, 0, -6.2), spot: V(1.8, 0, -3.6) },
+    1: { trainer: V(-3.3, 0, 2.6), spot: V(-2.0, 0, 0.5) },
+    2: { trainer: V(3.6, 0, -6.2), spot: V(2.2, 0, -3.6) },
     camera: { pos: V(0.4, 3.6, 9.4), look: V(0.2, 1.1, -1.8), fov: 40 },
   },
 };
+
+const LANDSCAPE_ASPECT = 2.1; // the width/height the landscape camera pose is framed for
 
 class BattleScene {
   constructor({ container, arena, trainers, seed = 1 }) {
@@ -1149,16 +1210,35 @@ class BattleScene {
     }
     const pose = layout.camera;
     // Narrow phones need a wider view to keep both sides on screen.
-    const aspectBoost = w < h ? clamp((0.62 - w / h) * 40, 0, 12) : 0;
-    this.targetPose = { pos: pose.pos.clone(), look: pose.look.clone(), fov: pose.fov + aspectBoost };
+    let fov = pose.fov + (w < h ? clamp((0.62 - w / h) * 40, 0, 12) : 0);
+    // Sideways, the landscape pose is framed for a full-width view; when the
+    // battlefield is narrower (the move buttons take the right side), widen it
+    // to keep the same side-to-side view so no one is cut off at the edges.
+    if (w > h && w / h < LANDSCAPE_ASPECT) {
+      const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(fov / 2)) * LANDSCAPE_ASPECT / (w / h));
+      fov = THREE.MathUtils.radToDeg(half * 2);
+    }
+    this.targetPose = { pos: pose.pos.clone(), look: pose.look.clone(), fov };
     if (immediate || !this.pose) this.pose = { pos: this.targetPose.pos.clone(), look: this.targetPose.look.clone(), fov: this.targetPose.fov };
     this.camera.fov = this.pose.fov;
     this.camera.updateProjectionMatrix();
   }
 
   frame() {
-    if (this.disposed) return;
+    if (this.disposed || this.failed) return;
     this.raf = requestAnimationFrame(this.frame);
+    try {
+      this.step();
+    } catch (err) {
+      // Stop drawing and tell the game, which falls back to the classic 2D battle.
+      this.failed = true;
+      cancelAnimationFrame(this.raf);
+      console.error('Battle3D:', err);
+      if (this.onError) this.onError(err);
+    }
+  }
+
+  step() {
     const now = performance.now();
     // A slow phone or a paused tab skips ahead instead of playing in slow motion.
     const dt = Math.min((now - this.lastTime) / 1000, 0.1);
@@ -1422,6 +1502,30 @@ class BattleScene {
     });
   }
 
+  // Ditto's Transform: a flash, then the new look on the same spot.
+  swap(side, pokemon) {
+    return this.enqueue(side, async () => {
+      const actor = this.actors[side];
+      if (!actor.visible) { await actor.set(pokemon); return; }
+      this.flash(actor.pos, '#da70d6', 2, 0.6);
+      await this.timeline.tween(0.25, k => { actor.filter = `brightness(${1 + k * 6})`; });
+      await actor.set(pokemon);
+      await this.timeline.tween(0.35, k => { actor.filter = `brightness(${1 + (1 - k) * 6})`; });
+      actor.filter = 'none';
+    });
+  }
+
+  // Where to float text for this side (damage numbers, "MISS!"), in pixels
+  // inside the container: over the Pokemon if it is out, else over its spot.
+  anchor(side) {
+    const actor = this.actors[side];
+    if (actor.visible && actor.center) return { x: actor.center.x, y: (actor.center.y + actor.top) / 2 };
+    const p = this.tmpA.copy(this.layout[side].spot);
+    p.y += 1;
+    p.project(this.camera);
+    return { x: (p.x + 1) / 2 * this.width, y: (1 - p.y) / 2 * this.height };
+  }
+
   // Winner's trainer celebrates.
   celebrate(side) {
     this.trainers[side].cheer = 60;
@@ -1448,6 +1552,9 @@ class BattleScene {
       mats.forEach(m => { Object.values(m).forEach(v => { if (v && v.isTexture) v.dispose(); }); m.dispose(); });
     });
     this.renderer.dispose();
+    // Phones allow only a handful of live 3D contexts; free this one now
+    // rather than whenever the browser gets round to it.
+    this.renderer.forceContextLoss();
     this.canvas.remove();
     this.layer.remove();
   }
