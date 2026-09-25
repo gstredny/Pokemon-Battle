@@ -25,7 +25,7 @@ for (const f of Object.values(CDN)) if (!existsSync(f)) { console.error(`missing
 
 const chrome = process.env.CHROME || (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const browser = await chromium.launch({ executablePath: chrome, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox', '--autoplay-policy=no-user-gesture-required'] });
-const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+const context = await browser.newContext({ viewport: { width: 844, height: 390 }, serviceWorkers: 'block' });
 const page = await context.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push('pageerror: ' + e.message));
@@ -86,15 +86,17 @@ try {
     await shot('start');
   });
   if (!no3d) {
-    await step('turning the phone keeps the same 3D scene', async () => {
+    await step('turning the phone upright asks to turn it back, and keeps the same 3D scene', async () => {
       await page.evaluate(() => { window.__canvas = document.querySelector('canvas'); });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.locator('text=Turn your phone sideways').waitFor({ state: 'visible', timeout: 3000 });
+      await shot('upright');
       await page.setViewportSize({ width: 844, height: 390 });
+      await page.locator('text=Turn your phone sideways').waitFor({ state: 'hidden', timeout: 3000 });
       await page.waitForTimeout(1500);
       await shot('landscape');
       const same = await page.evaluate(() => document.querySelector('canvas') === window.__canvas);
       if (!same) throw new Error('the 3D scene was rebuilt when the phone turned');
-      await page.setViewportSize({ width: 390, height: 844 });
-      await page.waitForTimeout(800);
     });
   }
   await step('Ash switches Pikachu for Charizard', async () => {

@@ -30,6 +30,17 @@
       height: var(--vh, 100vh);
       overflow: auto;
     }
+    /* The game is played sideways. A phone held upright gets a "turn me" screen. */
+    #turn-phone { display: none; }
+    @media (orientation: portrait) and (max-width: 600px) {
+      #turn-phone {
+        display: flex; position: fixed; inset: 0; z-index: 100000;
+        flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+        background: #1a1a2e; color: white; font: bold 22px 'Segoe UI', sans-serif; text-align: center;
+      }
+      #turn-phone .phone { font-size: 72px; animation: turnPhone 1.6s ease-in-out infinite; }
+    }
+    @keyframes turnPhone { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
   </style>
   <script>
     // Fix iOS viewport height
@@ -69,6 +80,7 @@
   </script>
 </head>
 <body>
+  <div id="turn-phone"><div class="phone">📱</div><div>Turn your phone sideways</div></div>
   <div id="root">
     <div id="loading-fallback" style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1a1a2e; color: white; font-family: 'Segoe UI', sans-serif;">
       <div style="font-size: 48px; margin-bottom: 20px;">⚡</div>
