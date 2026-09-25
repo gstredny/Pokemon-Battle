@@ -16,6 +16,8 @@ All CC0 (public domain). Built by `blender -b -P dev/blender/build_place.py -- c
 | Water Manhole Cover | https://polyhaven.com/a/water_manhole_cover | Raunox | CC0 |
 | Potted Plant 01 | https://polyhaven.com/a/potted_plant_01 | Rico Cilliers | CC0 |
 | Modular Street Seating | https://polyhaven.com/a/modular_street_seating | Stuart Attenborrow | CC0 |
+| Concrete Road Barrier | https://polyhaven.com/a/concrete_road_barrier | Amal Kumar | CC0 |
+| Covered Car | https://polyhaven.com/a/covered_car | MP | CC0 |
 | Facade001 | https://ambientcg.com/view?id=Facade001 | ambientCG | CC0 |
 | Facade006 | https://ambientcg.com/view?id=Facade006 | ambientCG | CC0 |
 | Facade018A | https://ambientcg.com/view?id=Facade018A | ambientCG | CC0 |
