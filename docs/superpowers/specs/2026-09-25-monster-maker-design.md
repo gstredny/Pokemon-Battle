@@ -39,7 +39,7 @@ for a reader and a non-reader.
   10, at most 5 in a row.
 - **4 power boxes**, each with room to draw the power and a name line:
   - Big Hit — very strong, sometimes misses.
-  - Fast Hit — weaker, always goes first.
+  - Fast Hit — weaker, but too quick to dodge.
   - Trick — circle one: burn, freeze, zap, poison, sleep.
   - Save-Me — circle one: heal, get stronger, get tougher, get faster.
 
@@ -60,12 +60,16 @@ mechanics.
 Ten stars always total 400–425. A card with more than 10 stars, or more than 5
 in a row, goes back to George to settle with the kid.
 
+Fast matters because of the dodge rule (commit `68cbf98`): a defender dodges
+1% per 4 points of speed over the attacker, up to 25%. Priority moves cannot
+be dodged.
+
 **Powers:**
 
 | Slot | Move fields |
 |---|---|
 | Big Hit | `power: 110, accuracy: 75`, monster's type |
-| Fast Hit | `power: 40, accuracy: 100, priority: true`, monster's type |
+| Fast Hit | `power: 40, accuracy: 100, priority: true` (never dodged), monster's type |
 | Trick | `power: 0, accuracy: 90` (sleep: 75), `effect` as circled, `effectChance: 100` |
 | Save-Me | `heal: 50`, or `boostAtk` / `boostDef` / `boostSpd` |
 
