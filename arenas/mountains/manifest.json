@@ -1,0 +1,21 @@
+{
+  "id": "mountains",
+  "scene": "scene.glb",
+  "sky": {
+    "background": "sky.jpg",
+    "light": "light.hdr",
+    "sun": [
+      0.6011,
+      0.667,
+      0.4402
+    ]
+  },
+  "patch": {
+    "color": "patch/color.jpg",
+    "normal": "patch/normal.jpg",
+    "roughness": "patch/roughness.jpg"
+  },
+  "fog": 0.006,
+  "bytes": 4103727,
+  "triangles": 94394
+}
