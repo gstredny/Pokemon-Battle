@@ -50,6 +50,8 @@
       id, name: card.name, madeBy: card.madeBy, type, cry: card.cry,
       hp: stats.hp, atk: stats.atk, def: stats.def, spd: stats.spd,
       img: `monsters/${card.slug}.png`,
+      // Built in Blender from the picture (dev/monsters/); the 3D battle falls back to the picture.
+      model: `models/monsters/${card.slug}.glb`,
       attacks: [
         { name: powers.bigHit, power: 110, accuracy: 75, type },
         { name: powers.fastHit, power: 40, accuracy: 100, type, priority: true },

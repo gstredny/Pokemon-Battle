@@ -9,6 +9,7 @@
 // that model must expose are listed next to buildTrainer().
 import * as THREE from './vendor/three.min.js';
 import { GLTFLoader } from './vendor/GLTFLoader.min.js';
+import { MonsterModel } from './monster3d.js';
 import volcano from './arenas/volcano.js';
 import cave from './arenas/cave.js';
 import junglePhoto from './arenas/jungle-photo.js';
@@ -941,7 +942,9 @@ function makePokeball() {
 
 // ---------------------------------------------------------------------------
 // A Pokemon standing in the scene: its animated sprite drawn as a billboard in
-// a DOM layer over the canvas, plus a soft shadow on the ground in WebGL.
+// a DOM layer over the canvas, plus a soft shadow on the ground in WebGL. A
+// kid monster with a 3D model (pokemon.model) shows that instead, once it has
+// loaded (monster3d.js); if it cannot load, the picture stays.
 // ---------------------------------------------------------------------------
 // Real heights from the Pokedex (metres), by sprite file name, so Charizard
 // towers over Pikachu. Tiny ones are kept big enough to read on a phone and
@@ -954,6 +957,8 @@ const DEX_HEIGHT = {
   clefable: 1.3, ditto: 0.3, dragonite: 2.2, exeggutor: 2.0, flareon: 0.9, gengar: 1.5, golem: 1.4, gyarados: 6.5,
   jolteon: 0.8, lapras: 2.5, machamp: 1.6, mew: 0.4, mewtwo: 2.0, moltres: 2.0, nidoking: 1.4, pikachu: 0.4,
   rhydon: 1.9, scyther: 1.5, snorlax: 2.1, tauros: 1.4, vaporeon: 1.0, venusaur: 2.0, zapdos: 1.6,
+  // The kids' monsters, sized from what the kids said about them ("he's big", "like a Pikachu").
+  swortos: 1.5, legtro: 1.7, mega: 2.0, froggy: 0.8, allymon: 0.6, smore: 0.7, whalley: 2.2, grassmic: 1.2, alltrik: 1.2,
 };
 const MIN_HEIGHT = 0.5, MAX_HEIGHT = 3.5, UNKNOWN_HEIGHT = 1.2;
 const SIZE_SCALE = 2.2, KNEE = 3.4, ABOVE_KNEE = 0.35, FIT_WIDTH = 3.6;
@@ -1018,13 +1023,24 @@ class PokemonActor {
     this.shadow.rotation.x = -Math.PI / 2;
     this.shadow.renderOrder = 2;
     scene.add(this.shadow);
+    this.scene = scene;
+    this.facing = 0;     // which way a 3D model turns (radians about the vertical)
+    this.model = null;
     this.ready = null;
   }
   set(pokemon) {
     this.el.src = pokemon.img;
     this.pokemon = pokemon;
     this.aspect = 1;
-    this.ready = new Promise(resolve => {
+    this.model?.dispose();
+    this.model = null;
+    this.modelHeight = heightFor(pokemon.img);
+    const model = pokemon.model && MonsterModel.load(pokemon.model).then(m => {
+      if (this.pokemon !== pokemon) return m.dispose();   // swapped again while it loaded
+      this.model = m;
+      this.scene.add(m.root);
+    }, err => console.warn('Battle3D: showing the picture, the 3D model did not load:', err.message));
+    const picture = new Promise(resolve => {
       const done = () => {
         const w = this.el.naturalWidth || 80, h = this.el.naturalHeight || 80;
         const b = opaqueBounds(this.el) || { top: 0, bottom: h, left: 0, right: w };
@@ -1045,30 +1061,42 @@ class PokemonActor {
         this.el.onerror = () => { this.worldH = heightFor(pokemon.img); this.drop = 0; this.footprint = this.worldH * 0.8; resolve(); };
       }
     });
+    this.ready = Promise.all([picture, model]);
     return this.ready;
   }
-  update(camera, w, h, tmpA, tmpB) {
+  // Play one of a 3D model's clips (Land, Attack, Hit, Faint); a picture has none.
+  clip(name) {
+    this.model?.play(name);
+  }
+  update(camera, w, h, tmpA, tmpB, dt) {
     const s = this.scale;
     if (!this.visible || s <= 0.001) {
       this.el.style.display = 'none';
       this.shadow.visible = false;
+      if (this.model) this.model.root.visible = false;
       return;
     }
+    const tall = this.model ? this.modelHeight : this.worldH, drop = this.model ? 0 : this.drop;
     tmpA.copy(this.pos).add(this.offset);
-    tmpA.y += this.rise - this.drop * s;
+    tmpA.y += this.rise - drop * s;
     tmpB.copy(tmpA);
-    tmpB.y += this.worldH * s;
+    tmpB.y += tall * s;
     tmpA.project(camera);
     tmpB.project(camera);
     const fx = (tmpA.x + 1) / 2 * w, fy = (1 - tmpA.y) / 2 * h, hy = (1 - tmpB.y) / 2 * h;
     const ph = Math.max(1, fy - hy);
     const pw = ph * this.aspect;
-    this.el.style.display = 'block';
-    this.el.style.width = pw + 'px';
-    this.el.style.height = ph + 'px';
-    this.el.style.opacity = this.opacity;
-    this.el.style.filter = this.filter;
-    this.el.style.transform = `translate3d(${(fx - pw / 2).toFixed(1)}px, ${(fy - ph).toFixed(1)}px, 0) rotate(${this.rot.toFixed(2)}deg)${this.mirror ? ' scaleX(-1)' : ''}`;
+    if (this.model) {
+      this.el.style.display = 'none';
+      this.model.follow(this, this.modelHeight, dt);
+    } else {
+      this.el.style.display = 'block';
+      this.el.style.width = pw + 'px';
+      this.el.style.height = ph + 'px';
+      this.el.style.opacity = this.opacity;
+      this.el.style.filter = this.filter;
+      this.el.style.transform = `translate3d(${(fx - pw / 2).toFixed(1)}px, ${(fy - ph).toFixed(1)}px, 0) rotate(${this.rot.toFixed(2)}deg)${this.mirror ? ' scaleX(-1)' : ''}`;
+    }
     this.shadow.visible = true;
     this.shadow.position.set(this.pos.x + this.offset.x, 0.02, this.pos.z + this.offset.z);
     const sw = this.footprint * 0.55 * s;
@@ -1081,6 +1109,7 @@ class PokemonActor {
     this.el.remove();
     this.burst.remove();
     this.shadow.parent?.remove(this.shadow);
+    this.model?.dispose();
   }
 }
 
@@ -1248,6 +1277,8 @@ class BattleScene {
         this.trainers[side].root.position.copy(layout[side].trainer);
         this.trainers[side].root.lookAt(layout[other].spot.x, 0, layout[other].spot.z);
         this.actors[side].pos.copy(layout[side].spot);
+        // A 3D monster turns three-quarters toward its foe, keeping its face to the camera.
+        this.actors[side].facing = Math.sign(layout[other].spot.x - layout[side].spot.x) * 0.75;
       });
     }
     const pose = layout.camera;
@@ -1315,8 +1346,8 @@ class BattleScene {
     this.camera.updateMatrixWorld();
 
     this.renderer.render(this.scene, this.camera);
-    this.actors[2].update(this.camera, this.width, this.height, this.tmpA, this.tmpB);
-    this.actors[1].update(this.camera, this.width, this.height, this.tmpA, this.tmpB);
+    this.actors[2].update(this.camera, this.width, this.height, this.tmpA, this.tmpB, dt);
+    this.actors[1].update(this.camera, this.width, this.height, this.tmpA, this.tmpB, dt);
   }
 
   enqueue(side, fn) {
@@ -1421,6 +1452,7 @@ class BattleScene {
         actor.filter = k < 1 ? `brightness(${1 + (1 - k) * 8}) saturate(${k})` : 'none';
       });
       actor.scale = 1; actor.rise = 0; actor.filter = 'none';
+      actor.clip('Land');
       this.timeline.tween(0.25, k => { lid.rotation.x = -(1 - k) * 2.1; })
         .then(() => this.timeline.tween(0.35, k => { const s = 1 - k; ball.scale.setScalar(Math.max(s, 0.001)); ball.position.y = r + k * 0.6; }))
         .then(() => { this.scene.remove(ball); });
@@ -1448,6 +1480,7 @@ class BattleScene {
       const actor = this.actors[side];
       if (!actor.visible) return;
       const spot = this.layout[side].spot;
+      actor.clip('Land');
       this.flash(spot, color, 1.5, 0.7);
       this.timeline.tween(0.7, k => { actor.rise = Math.sin(k * Math.PI) * 0.35; actor.filter = `brightness(${1 + Math.sin(k * Math.PI) * 0.8})`; })
         .then(() => { actor.rise = 0; actor.filter = 'none'; });
@@ -1471,6 +1504,7 @@ class BattleScene {
       const dir = this.layout[other].spot.clone().sub(this.layout[side].spot);
       const dist = dir.length();
       dir.normalize();
+      actor.clip('Attack');
       this.timeline.tween(0.42, k => {
         const lunge = k < 0.4 ? easeOutCubic(k / 0.4) : 1 - easeInOutCubic((k - 0.4) / 0.6);
         actor.offset.copy(dir).multiplyScalar(lunge * 0.9);
@@ -1510,6 +1544,7 @@ class BattleScene {
       b.style.background = `radial-gradient(circle, ${color} 0%, ${color}aa 40%, transparent 70%)`;
       b.style.display = 'block';
       const away = this.layout[side].spot.clone().sub(this.layout[side === 1 ? 2 : 1].spot).normalize();
+      actor.clip('Hit');
       await this.timeline.tween(0.45, k => {
         const f = 1 - k;
         actor.offset.copy(away).multiplyScalar(Math.sin(k * Math.PI) * 0.35 + Math.sin(k * 60) * 0.08 * f);
@@ -1534,8 +1569,9 @@ class BattleScene {
     return this.enqueue(side, async () => {
       const actor = this.actors[side];
       if (!actor.visible) return;
-      await this.timeline.tween(0.85, k => {
-        actor.rise = -k * k * 0.9;
+      actor.clip('Faint');
+      await this.timeline.tween(actor.model ? 1.3 : 0.85, k => {
+        actor.rise = -k * k * (actor.model ? 0.3 : 0.9);
         actor.rot = (actor.mirror ? -1 : 1) * k * 22;
         actor.opacity = 1 - easeInQuad(k);
         actor.filter = `saturate(${1 - k}) brightness(${1 - k * 0.5})`;

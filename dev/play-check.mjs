@@ -63,13 +63,13 @@ try {
     await page.locator('img[alt="Misty"]').click();
     await page.locator("text=Let's GO!").click();
   });
-  await step('draft: looking at Mew first, then Pikachu, Charizard, Gyarados vs Ditto, Snorlax, Mew, taking turns', async () => {
+  await step('draft: looking at Mew first, then Pikachu, Charizard, Whalley vs Ditto, Snorlax, Mew, taking turns', async () => {
     // Tapping only shows a Pokemon on the stand; its Pick button takes it.
     await page.locator('img[alt="Mew"]').last().click();
     await page.locator('text=Strong against').waitFor({ timeout: 2000 });
     await page.waitForTimeout(700); // the pop onto the stand
     await shot('pick-browse');
-    for (const n of ['Pikachu', 'Ditto', 'Charizard', 'Snorlax', 'Gyarados', 'Mew']) {
+    for (const n of ['Pikachu', 'Ditto', 'Charizard', 'Snorlax', 'Whalley', 'Mew']) {
       await page.locator(`img[alt="${n}"]`).last().click();
       await page.locator(`button:has-text("Pick ${n}!")`).click();
     }
@@ -107,13 +107,16 @@ try {
       if (!same) throw new Error('the 3D scene was rebuilt when the phone turned');
     });
   }
-  await step('Ash switches Pikachu for Charizard', async () => {
-    // The Charizard ball in Ash's team row (3D HUD card or 2D team indicator).
-    await page.locator('img[alt="Charizard"]').first().click();
-    await page.locator('text=Charizard, go!').waitFor({ timeout: 5000 });
+  await step('Ash switches Pikachu for Whalley' + (no3d ? '' : ', who comes out as a 3D model'), async () => {
+    // The Whalley ball in Ash's team row (3D HUD card or 2D team indicator).
+    await page.locator('img[alt="Whalley"]').first().click();
+    await page.locator('text=Whalley, go!').waitFor({ timeout: 5000 });
     if (!no3d) {
       await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => !b.disabled && b.textContent.trim() && !b.textContent.includes('⤢')), null, { timeout: 30000 });
-      if (await visibleSprites() !== 2) throw new Error('Charizard did not come out after the switch');
+      // Pikachu goes back in its ball, and Whalley's picture hides once his model is in
+      // the scene, so only Ditto's sprite shows.
+      await page.waitForFunction(() => [...document.querySelectorAll('img[alt=""]')].filter(i => i.style.display === 'block').length === 1, null, { timeout: 30000 })
+        .catch(async () => { throw new Error(`Whalley's 3D model did not replace the picture (${await visibleSprites()} sprites showing)`); });
     }
     await shot('after-switch');
   });

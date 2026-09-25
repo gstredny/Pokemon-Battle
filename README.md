@@ -49,6 +49,10 @@ sips -s format jpeg monsters/cards/card.heic --out monsters/cards/card.jpg
 .venv/bin/python tools/cutout.py cut monsters/cards/card.jpg LEFT TOP RIGHT BOTTOM monsters/<slug>.png
 ```
 
+Every kid monster also gets a 3D model for the 3D battle, made from its picture
+(see "Kid monsters in 3D" in `dev/README.md`); until it has one, the battle shows
+the picture.
+
 A finished picture (from an art app, with a background) goes through the Mac's
 "lift the subject" feature instead:
 
@@ -78,6 +82,8 @@ first visit so later launches are instant and work offline.
 |---|---|
 | `index.html` | The game: screens, battle rules, the HUD over the battlefield. |
 | `battle3d.js` | The 3D battlefield. `dev/README.md` covers working on it. |
+| `monster3d.js` | A kid monster's 3D model in the battle, with its clips. |
+| `models/` | The trainers' and kid monsters' 3D models, built in Blender. |
 | `vendor/` | Three.js, which draws the 3D. |
 | `sw.js` | Caches the game for offline play. |
 | `assets.json` | The list of files `sw.js` caches. |

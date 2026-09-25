@@ -31,6 +31,7 @@ test('the monster keeps its card details and drawing path', () => {
   assert.equal(m.type, 'fire');
   assert.equal(m.cry, 'dragon');
   assert.equal(m.img, 'monsters/blaze-jaw.png');
+  assert.equal(m.model, 'models/monsters/blaze-jaw.glb');   // the 3D battle shows this, or the picture if it is missing
 });
 
 test('the four powers become the four moves', () => {

@@ -71,3 +71,18 @@ the new CACHE_VERSION.
 ### George's mid-goal asks (2026-09-25 16:20), done
 - "very difficult to kill any of the Pokemon": the battle simulator (scratch) showed kid-vs-kid battles at a median of 154 moves, 29% never ending. George chose "only fix kid monsters": Tricks hit (60) and do their trick 50% of the time, and heals are 30% (3dd0dd0). The median is now 48 moves.
 - Pick screen: the move list is removed (a84c4c2). Cache v26, live (curl shows pokemon-battle-v26).
+
+### Step 2: places — DONE, pushed and live (5e127a4, cache v27, 2026-09-25)
+- Sizes (build_place.py): cave 5.08 MB / 104,284 triangles; city 4.00 MB / 47,473; mountains 4.10 MB / 94,394; ocean 5.67 MB / 105,253; volcano 4.55 MB / 113,312; the jungle (earlier) 6.8 MB.
+- Checks: `node --test tests/*.test.js` 34/34 pass; `node dev/play-check.mjs` PASSED (31 moves, Volcano); `--no3d` PASSED (29 moves); `node dev/shoot.mjs <place> ash misty` ran clean for all six places; `curl` shows pokemon-battle-v27, and place files return 200.
+- What the pictures show: jungle, the photo clearing with scanned rocks and tree cut-outs; ocean, a beach with a calm sea, a sailing ship, a pier and a treasure chest; mountains, a green meadow with firs, rock faces and the Alps; volcano, dark ground with glowing lava rivers and a volcano at dusk; city, a paved plaza, a road with a zebra crossing, lamps, benches, a hydrant, trees and glass and brick buildings; cave, rock walls with glowing crystals and a rock spike.
+
+### Step 3: the 9 kid monsters in 3D
+- Tool: TripoSR (MIT, Tripo AI and Stability AI), run on this Mac (MPS), about 18 s per picture. Setup in dev/monsters/shape_from_picture.py. Weights were fetched with curl, because Python can't download through the proxy. PyMCubes stands in for torchmcubes, which needs compiling.
+- Input: George's full-size pictures in ~/Downloads, cut out with tools/lift-subject.swift (the name text dropped out).
+- Tries that failed:
+  - S'more with its flames baked a red back. Cutting every flame-coloured pixel ate his glowing edges and left him full of holes. The fix: crop only the big flame on his right.
+  - The first exports were over 1 MB (Swortos 1.03, Grassmic 1.29). Shrinking the texture barely helped, because vertices were ~85% of the file. gltfpack quantization halved them.
+  - The first set of battle pictures looked bleached. That was my test running 5 software-rendered browsers at once: stale frames showed the arrival flash. Taken one at a time, the colours match.
+- Result: all nine at 12,000 triangles with five clips each. Sizes: swortos 0.68 MB, legtro 0.58, mega 0.60, froggy 0.53, allymon 0.37, smore 0.54, whalley 0.62, grassmic 0.83, alltrik 0.61.
+- Compared with the pictures: every model has its picture's shape and colours (eagle with spread wings, blue and cream serpent, brick body with a tail, red-eyed frog, yellow blob with ears, charred marshmallow, blue whale with red fins, leafy turtle, yellow body with red spikes). S'more's flames are left for step 4 as a moving effect.
