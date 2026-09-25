@@ -50,6 +50,7 @@ test('power words map to battle effects', () => {
   assert.equal(moves('freeze', 'stronger')[2].effect, 'frozen');
   assert.equal(moves('freeze', 'stronger')[3].boostAtk, true);
   assert.equal(moves('burn', 'tougher')[3].boostDef, true);
+  assert.equal(moves('zap', 'copy')[3].transform, true);
 });
 
 test('any type the game knows is allowed', () => {

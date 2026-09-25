@@ -10,8 +10,8 @@
   const MAX_POINTS = 425;
   // What each Trick does in battle.
   const TRICK_EFFECTS = { burn: 'burn', freeze: 'frozen', zap: 'paralysis', poison: 'poison', sleep: 'sleep' };
-  // What each Save-Me does in battle.
-  const SAVE_ME_FIELDS = { heal: { heal: 50 }, stronger: { boostAtk: true }, tougher: { boostDef: true }, faster: { boostSpd: true } };
+  // What each Save-Me does in battle. copy turns into the foe, like Ditto's Transform.
+  const SAVE_ME_FIELDS = { heal: { heal: 50 }, stronger: { boostAtk: true }, tougher: { boostDef: true }, faster: { boostSpd: true }, copy: { transform: true } };
 
   // Records are typed in by hand, so check one before it can break the game.
   function checkCard(card) {
