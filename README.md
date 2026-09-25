@@ -95,6 +95,7 @@ first visit so later launches are instant and work offline.
 | `monster-card.html` | The printable card kids draw on. |
 | `kid-monsters.js` | Every kid's monster. |
 | `music.js` | The songs, written as notes, and their player. No song plays for now (sound effects only); it also holds the mute switch every sound shares. |
+| `sounds.js`, `sounds/` | Real CC0 sound effects for every move type, hits, throws and faints, and each place's own sound (waves, birds, city). Built by `python3 dev/sounds/build_sounds.py`; credits in `sounds/LICENSES.md`. |
 | `card-rules.js` | Turns a kid's monster into stats and moves. |
 | `monsters/` | Cut-out drawings of kid monsters. |
 | `tools/cutout.py` | Cuts a drawing out of a card photo. |

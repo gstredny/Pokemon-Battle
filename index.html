@@ -116,6 +116,7 @@
   <script src="card-rules.js"></script>
   <script src="kid-monsters.js"></script>
   <script src="music.js"></script>
+  <script src="sounds.js"></script>
   <script type="text/babel">
     const { useState, useRef, useEffect } = React;
 
@@ -503,6 +504,7 @@ const useSound = () => {
 
   const playAttackSound = (type) => {
     if (Music.muted) return;
+    if (Sounds.play('move-' + type)) return;   // the type's real recording, once loaded
     try {
       const ctx = getCtx();
       const now = ctx.currentTime;
@@ -1147,6 +1149,10 @@ const useSound = () => {
 
   const playSound = (type) => {
     if (Music.muted) return;
+    // Real recordings (sounds.js) where there is one; the synth stands in while it loads.
+    const recording = { miss: 'miss', faint: 'faint', superEffective: 'hit-big' }[type];
+    if (recording && Sounds.play(recording)) return;
+    if (type === 'victory') Sounds.play('cheer', { volume: 0.5 });   // a crowd under the win jingle
     try {
       const ctx = getCtx();
       const now = ctx.currentTime;
@@ -1363,7 +1369,13 @@ const TitleScreen = ({ onPlay, playSound, playAttackSound }) => {
     return () => timers.forEach(clearTimeout);
   }, [stage]);
   const tap = () => {
-    if (stage === 'tap') { Music.context(); setStage('intro'); }
+    if (stage === 'tap') {
+      Music.context();
+      // The first tap is when phones allow sound, so fetch the effects now.
+      Sounds.warm();
+      Object.keys(TYPE_DATA).forEach(type => Sounds.load('move-' + type));
+      setStage('intro');
+    }
     else if (stage === 'intro') setStage('skipped');
   };
   // Each piece plays its entrance once, then keeps its idle motion. Skipping drops the entrances.
@@ -2062,6 +2074,7 @@ function PokemonBattle() {
         setScreenFlash('#FFD70088');
         setTimeout(() => { addFloatingText('SUPER EFFECTIVE!', '#FFD700', true, defenderSide); setTimeout(() => addFloatingText(`-${damage}`, '#FF4444', true, defenderSide), 250); }, 150);
       } else if (effectiveness < 1 && effectiveness > 0) {
+        Sounds.play('hit', { volume: 0.5 });
         setTimeout(() => { addFloatingText('Not effective...', '#888', false, defenderSide); setTimeout(() => addFloatingText(`-${damage}`, '#FFAA44', false, defenderSide), 250); }, 150);
       } else if (effectiveness === 0) {
         playSound('miss');
@@ -2069,6 +2082,7 @@ function PokemonBattle() {
         setTimeout(() => { setTurn(turn === 1 ? 2 : 1); setMessage(`${turn === 1 ? trainer2.name : trainer1.name}'s turn!`); setAnimating(false); }, 1200);
         return;
       } else {
+        Sounds.play('hit');
         setTimeout(() => addFloatingText(`-${damage}`, '#FF4444', true, defenderSide), 150);
       }
       

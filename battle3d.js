@@ -1205,6 +1205,7 @@ class BattleScene {
     this.ready = Promise.resolve(this.arena.ready).then(() => {
       if (this.disposed) return;
       canvas.style.opacity = '1';
+      this.stopPlaceSound = window.Sounds?.loop(`place-${arena}`, 0.35);   // waves, birds, city...
       this.timeline.tween(2.4, k => { this.introK = k; }, easeOutCubic);
     }, err => {
       this.failed = true;
@@ -1405,6 +1406,7 @@ class BattleScene {
       trainer.startThrow();
       await this.timeline.wait(THROW_RELEASE);
       if (this.disposed) return;
+      window.Sounds?.play('throw');   // sounds.js, when the game loaded it
 
       // Hand the ball over to world space at the point of release.
       const start = new THREE.Vector3();
@@ -1431,6 +1433,7 @@ class BattleScene {
       await loading;
       await this.timeline.tween(0.16, k => { lid.rotation.x = -k * 2.1; });
       if (this.disposed) return;
+      window.Sounds?.play('ball-open');
       this.flash(ball.position, '#ffffff', 4, 0.6);
       this.particles(ball.position, '#fff7c2', 46, 3.5, 0.8, 5);
       actor.visible = true;
@@ -1616,6 +1619,7 @@ class BattleScene {
 
   dispose() {
     this.disposed = true;
+    this.stopPlaceSound?.();
     cancelAnimationFrame(this.raf);
     window.removeEventListener('resize', this.onResize);
     this.resizeObserver?.disconnect();

@@ -98,3 +98,12 @@ the new CACHE_VERSION.
 - Trainers: Cheer and Slump clips were added in dev/blender/rig.py. All 15 were rebuilt, and the check requires the clips. The game plays them, confirmed by photo: Georgie's arm goes up, Dora's head hangs.
 - S'more: `aura: 'flames'` in his record, drawn as a ring of fire around his model.
 - Checks: 35/35 unit tests; play-check PASSED (27 moves) and --no3d PASSED (15 moves).
+- A slip: a commit command failed on a moved file's path, so the first push of step 4 (77e7416, 7f7d9b9: trainer clips and S'more's aura data) went out at cache v28 without a bump. It was harmless, because nothing used them yet, and c46e52a (v29) followed within minutes.
+- Step 4 pushed and live: c46e52a, cache v29.
+
+### Step 5: sounds
+- Sources, all explicitly CC0: Freesound (public search filtered to CC0; build_sounds.py checks each sound's page for the CC0 licence before using its public preview, so no account is needed) and Kenney's CC0 packs.
+- Tries that failed: OpenGameArt returned 502 for the whole site, so it wasn't used. BigSoundBank calls its licence "CC0-like", not CC0, so it wasn't used. Wikimedia Commons search mostly returns spoken words (Lingua Libre).
+- 31 sounds, 1.58 MB: 18 move types, hit, big hit, miss, throw, ball-open, faint, crowd cheer, and six 24 s place loops (their end is crossfaded into their start). All are audible with no clipping (ffmpeg volumedetect: peaks −0.5 to −16.7 dB).
+- In a full battle, every sound played: the place loop, throws, ball opens, moves, hits, misses, faints and the big hit. The cheer hadn't loaded yet, so it is now fetched on the first tap too.
+- Songs stay OFF: George's latest word (15:15) overrides the goal's "Songs back on". The mute button silences everything, because it suspends the shared AudioContext.
