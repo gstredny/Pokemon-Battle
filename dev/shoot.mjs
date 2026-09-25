@@ -4,9 +4,11 @@
 import { chromium } from 'playwright';
 const [,, arena = 'jungle', t1 = 'ash', t2 = 'misty', module = ''] = process.argv;
 const out = process.env.OUT || 'dev/shots';
-import { mkdirSync } from 'fs';
+import { mkdirSync, existsSync } from 'fs';
 mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'] });
+// The cloud sandbox ships Chromium at this path; elsewhere Playwright's own download is used.
+const chrome = process.env.CHROME || (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+const browser = await chromium.launch({ executablePath: chrome, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'] });
 const url = `http://127.0.0.1:8777/dev/arena-harness.html?arena=${arena}&t1=${t1}&t2=${t2}${module ? '&module=' + module : ''}`;
 for (const [tag, viewport] of [['portrait', { width: 390, height: 844 }], ['landscape', { width: 844, height: 390 }]]) {
   const page = await browser.newPage({ viewport });
