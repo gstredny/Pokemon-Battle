@@ -1,0 +1,21 @@
+{
+  "id": "city",
+  "scene": "scene.glb",
+  "sky": {
+    "background": "sky.jpg",
+    "light": "light.hdr",
+    "sun": [
+      0.6885,
+      0.4794,
+      0.5442
+    ]
+  },
+  "patch": {
+    "color": "patch/color.jpg",
+    "normal": "patch/normal.jpg",
+    "roughness": "patch/roughness.jpg"
+  },
+  "fog": 0.003,
+  "bytes": 4002696,
+  "triangles": 47473
+}
