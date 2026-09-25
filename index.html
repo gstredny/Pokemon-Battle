@@ -420,6 +420,10 @@ const TYPE_CHART = {
 
 const getEffectiveness = (attackType, defenseType) => TYPE_CHART[attackType]?.[defenseType] ?? 1;
 
+// A faster Pokemon sometimes dodges: 1% per 4 points of speed over the
+// attacker, up to 25%. A slower one never dodges.
+const getDodgeChance = (defenderSpd, attackerSpd) => Math.min(25, Math.max(0, (defenderSpd - attackerSpd) / 4));
+
 // Unique icons for each move
 const MOVE_ICONS = {
   'Thunder': '🌩️', 'Thunderbolt': '⚡', 'Quick Attack': '💨', 'Thunder Wave': '〰️',
@@ -1672,6 +1676,17 @@ function PokemonBattle() {
       if (Math.random() * 100 > attack.accuracy) {
         playSound('miss');
         addFloatingText('MISS!', '#888', true, defenderSide);
+        setTimeout(() => { setTurn(turn === 1 ? 2 : 1); setMessage(`${turn === 1 ? trainer2.name : trainer1.name}'s turn!`); setAnimating(false); }, 1200);
+        return;
+      }
+
+      // Dodge check: speed lets the defender slip away, but priority moves are too quick to dodge
+      const atkSpd = attacker.spd * (1 + attackerBoosts.spd * 0.5);
+      const defSpd = defender.spd * (1 + defenderBoosts.spd * 0.5);
+      if (!attack.priority && Math.random() * 100 < getDodgeChance(defSpd, atkSpd)) {
+        playSound('miss');
+        setMessage(`${defender.name} dodged!`);
+        addFloatingText('💨 DODGED!', '#9AA9FE', true, defenderSide);
         setTimeout(() => { setTurn(turn === 1 ? 2 : 1); setMessage(`${turn === 1 ? trainer2.name : trainer1.name}'s turn!`); setAnimating(false); }, 1200);
         return;
       }
