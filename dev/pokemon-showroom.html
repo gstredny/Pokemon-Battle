@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Pokemon Gallery</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --room: #1b2130; --text: #efeae0; --muted: #8d95ab; --red: #e3350d; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--room); color: var(--text); font: 15px/1.45 Archivo, system-ui, sans-serif; }
+  canvas { display: block; }
+  #panel { position: absolute; left: 32px; top: 32px; width: 396px; display: flex; flex-direction: column; gap: 22px; }
+  #dex { margin: 0; font-weight: 600; font-size: 14px; color: var(--muted); }
+  #name { margin: 0; font-weight: 600; font-size: 44px; line-height: 1.1; letter-spacing: -0.01em; }
+  #error { margin: 6px 0 0; color: #ff8a70; }
+  #error:empty { display: none; }
+  #grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+  #grid button { aspect-ratio: 1; padding: 4px; border: 0; border-radius: 6px; background: rgba(255, 255, 255, .05); cursor: pointer; position: relative; }
+  #grid button:hover { background: rgba(255, 255, 255, .1); }
+  #grid button[aria-pressed=true] { background: rgba(255, 255, 255, .16); }
+  #grid button[aria-pressed=true]::after { content: ''; position: absolute; left: 30%; right: 30%; bottom: 0; height: 3px; border-radius: 2px; background: var(--red); }
+  #grid button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  #grid img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+  #hint { position: absolute; top: 28px; right: 32px; margin: 0; color: var(--muted); font-size: 13px; }
+  @media (max-width: 720px) and (orientation: portrait) {
+    #panel { left: 12px; right: 12px; top: 12px; bottom: 12px; width: auto; justify-content: space-between; }
+    #name { font-size: 28px; }
+    #hint { display: none; }
+  }
+  /* A phone turned sideways: shrink the grid until all five rows fit the height. */
+  @media (max-height: 500px) and (orientation: landscape) {
+    #panel { left: 16px; top: 12px; gap: 8px; width: min(396px, calc((100dvh - 118px) * 1.2 + 30px)); }
+    #name { font-size: 26px; }
+    #hint { display: none; }
+  }
+  @media (hover: none) { #hint { display: none; } }
+</style>
+</head><body>
+<div id="panel">
+  <header id="title" aria-live="polite"><p id="dex"></p><h1 id="name">Loading</h1><p id="error"></p></header>
+  <nav id="grid" aria-label="Pokemon"></nav>
+</div>
+<p id="hint">Click a Pokemon or use the arrow keys.</p>
+<script type="module">
+  // A gallery for the Pokemon sprites: one animated sprite at a time stands on
+  // a plinth in a dark room, lit by the room's spotlight and casting its own
+  // shadow, while the camera drifts slowly. Sprites are shown at most four
+  // screen pixels per sprite pixel, where pixel art still reads as sharp.
+  // Serve the repo root (see dev/README.md) and open
+  // /dev/pokemon-showroom.html?p=snorlax
+  import * as THREE from '../vendor/three.min.js';
+  import { decodeGif } from './gif-frames.js';
+  const DEX = { venusaur: 3, charizard: 6, blastoise: 9, pikachu: 25, nidoking: 34, clefable: 36, arcanine: 59, alakazam: 65,
+    machamp: 68, golem: 76, gengar: 94, exeggutor: 103, rhydon: 112, chansey: 113, scyther: 123, tauros: 128, gyarados: 130,
+    lapras: 131, ditto: 132, vaporeon: 134, jolteon: 135, flareon: 136, aerodactyl: 142, snorlax: 143, articuno: 144,
+    zapdos: 145, moltres: 146, dragonite: 149, mewtwo: 150, mew: 151 };
+  const ROOM = '#1b2130', PLINTH_H = 0.42, PIXEL_TO_WORLD = 0.024;   // same sprite scale as battle3d.js
+  const DRIFT = 0.28, DRIFT_S = 14, COLUMNS = 6, MAX_ZOOM = 4;   // camera sweep: radians each way, seconds per sweep
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = id => document.getElementById(id);
+  window.errors = [];
+  window.loaded = null;
+  const fail = msg => { window.errors.push(msg); $('error').textContent = msg; };
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  document.body.prepend(renderer.domElement);
+
+  // The room: a dark floor that fades into the walls, a stone plinth, one warm
+  // spotlight from above, a cool rim light behind.
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(ROOM);
+  scene.fog = new THREE.Fog(ROOM, 6, 15);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 64), new THREE.MeshStandardMaterial({ color: '#2c3346', roughness: 0.95 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.02, PLINTH_H, 72), new THREE.MeshStandardMaterial({ color: '#d6d0c2', roughness: 0.75 }));
+  plinth.position.y = PLINTH_H / 2;
+  plinth.castShadow = plinth.receiveShadow = true;
+  const spot = new THREE.SpotLight('#ffe6c2', 170, 0, 0.36, 0.6, 2);
+  spot.position.set(1.5, 7, 3);
+  spot.target.position.set(0, 0.9, 0);
+  spot.castShadow = true;
+  spot.shadow.mapSize.set(2048, 2048);
+  spot.shadow.radius = 3;
+  const rim = new THREE.DirectionalLight('#86b6ff', 2.2);
+  rim.position.set(-3, 3.5, -4.5);
+  const fill = new THREE.DirectionalLight('#ffffff', 0.45);
+  fill.position.set(-4, 2, 5);
+  scene.add(floor, plinth, spot, spot.target, rim, fill, new THREE.HemisphereLight('#9fb4ff', ROOM, 0.35));
+  // A soft dark spot on the plinth under the feet.
+  const dot = document.createElement('canvas');
+  dot.width = dot.height = 64;
+  const g = dot.getContext('2d'), grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, '#000');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  const contact = new THREE.Mesh(new THREE.CircleGeometry(1, 32), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(dot), transparent: true, depthWrite: false, opacity: 0.5 }));
+  contact.rotation.x = -Math.PI / 2;
+  contact.position.y = PLINTH_H + 0.003;
+  scene.add(contact);
+  // The sprite: a card standing on the plinth, turned to face the camera, lit
+  // by the room but kept out of tone mapping, with a little of its own colour
+  // added back, so it stays as bright and saturated as the GIF.
+  const sprite = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({
+    alphaTest: 0.5, alphaToCoverage: true, roughness: 1, metalness: 0, emissive: '#ffffff', emissiveIntensity: 0.35, toneMapped: false, shadowSide: THREE.DoubleSide }));
+  // Sample each texel flat and blend only across the one screen pixel at its
+  // edge, so pixels stay crisp and even while the card turns.
+  const texSize = { value: new THREE.Vector2(1, 1) };
+  sprite.material.onBeforeCompile = shader => {
+    shader.uniforms.texSize = texSize;
+    shader.fragmentShader = 'uniform vec2 texSize;\n' + shader.fragmentShader
+      .replace('#include <map_fragment>', `
+        vec2 texel = vMapUv * texSize, seam = floor(texel + 0.5);
+        texel = seam + clamp((texel - seam) / fwidth(texel), -0.5, 0.5);
+        diffuseColor *= texture2D(map, texel / texSize);`)
+      .replace('#include <emissivemap_fragment>', 'totalEmissiveRadiance *= diffuseColor.rgb;');
+  };
+  sprite.position.y = PLINTH_H;
+  sprite.castShadow = true;
+  sprite.visible = false;
+  scene.add(sprite);
+
+  let anim = null;
+  const paint = k => {
+    const { gif, image, ctx, texture } = anim;
+    image.data.set(gif.frames[k].pixels);
+    ctx.putImageData(image, 0, 0);
+    texture.needsUpdate = true;
+    anim.shown = k;
+  };
+
+  // The camera frames plinth and sprite inside the space the panel leaves free,
+  // backing off further if the sprite would pass MAX_ZOOM.
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 60);
+  const view = { h: 1.5, w: 1.5, plinth: 1, free: { w: 1, h: 1 } };
+  const aim = now => {
+    const tall = PLINTH_H + view.h, y = tall * 0.44, pitch = 0.22;
+    const span = Math.max(tall / view.free.h * 1.5, view.w / view.free.w * 1.5, PIXEL_TO_WORLD / MAX_ZOOM) * innerHeight;
+    const dist = span / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const yaw = still ? 0 : DRIFT * Math.sin(now / 1000 * 2 * Math.PI / DRIFT_S);
+    camera.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, y + Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist);
+    camera.lookAt(0, y, 0);
+    scene.fog.near = dist * 0.8;
+    scene.fog.far = dist * 2.4;
+  };
+  const fitScreen = () => {
+    const W = innerWidth, H = innerHeight, top = $('title').getBoundingClientRect().bottom, grid = $('grid').getBoundingClientRect();
+    const beside = grid.top < H / 2;   // wide screens: panel on the left; phones: grid along the bottom
+    const cx = beside ? (grid.right + W) / 2 : W / 2, cy = beside ? H / 2 : (top + grid.top) / 2;
+    view.free = beside ? { w: W - grid.right, h: H } : { w: W, h: grid.top - top };
+    camera.aspect = W / H;
+    camera.setViewOffset(W, H, W / 2 - cx, H / 2 - cy, W, H);
+    renderer.setSize(W, H);
+  };
+
+  const names = (await fetch('../assets.json').then(r => r.json()).catch(() => []))
+    .filter(f => f.endsWith('.gif')).map(f => f.slice(0, -4))
+    .sort((a, b) => (DEX[a] || 999) - (DEX[b] || 999));
+  if (!names.length) { $('name').textContent = 'No sprites'; fail('Could not read the sprite list in assets.json.'); }
+  const title = n => n[0].toUpperCase() + n.slice(1);
+  const buttons = names.map((name, i) => {
+    const b = document.createElement('button');
+    b.setAttribute('aria-label', title(name));
+    b.title = title(name);
+    b.innerHTML = `<img src="../${name}.gif" alt="">`;
+    b.onclick = () => select(i);
+    $('grid').append(b);
+    return b;
+  });
+  const gifs = new Map();
+  const load = name => gifs.get(name) || gifs.set(name, fetch(`../${name}.gif`)
+    .then(r => { if (!r.ok) throw new Error(`Could not load ${name}.gif (${r.status}).`); return r.arrayBuffer(); })
+    .then(b => decodeGif(new Uint8Array(b)))).get(name);
+  let index = -1;
+  async function select(i) {
+    index = (i + names.length) % names.length;
+    const name = names[index];
+    buttons.forEach((b, j) => b.setAttribute('aria-pressed', j === index));
+    history.replaceState(null, '', `?p=${name}`);
+    $('dex').textContent = DEX[name] ? `No. ${String(DEX[name]).padStart(3, '0')}` : '';
+    $('name').textContent = title(name);
+    $('error').textContent = '';
+    let gif;
+    try { gif = await load(name); } catch (err) { return fail(err.message); }
+    if (names[index] !== name) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = gif.width;
+    canvas.height = gif.height;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.generateMipmaps = false;
+    texture.minFilter = THREE.LinearFilter;
+    texSize.value.set(gif.width, gif.height);
+    anim?.texture.dispose();
+    anim = { gif, texture, ctx: canvas.getContext('2d'), image: new ImageData(canvas.width, canvas.height), start: performance.now(), shown: -1,
+      ends: gif.frames.reduce((a, f) => [...a, (a.at(-1) || 0) + f.delay], []) };
+    paint(0);
+    sprite.material.map = texture;
+    sprite.material.needsUpdate = true;
+    sprite.visible = true;
+    const w = gif.width * PIXEL_TO_WORLD;
+    view.h = gif.height * PIXEL_TO_WORLD;
+    view.plinth = THREE.MathUtils.clamp(0.3 + 0.4 * w, 0.6, 1.05);
+    view.w = Math.max(w, view.plinth * 2);
+    contact.scale.set(w * 0.42, w * 0.42 * 0.6, 1);
+    window.loaded = name;
+  }
+  addEventListener('keydown', e => {
+    const step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: COLUMNS, ArrowUp: -COLUMNS }[e.key];
+    if (step) { e.preventDefault(); select(index + step); }
+  });
+  fitScreen();
+  addEventListener('resize', fitScreen);
+  const start = names.indexOf(new URLSearchParams(location.search).get('p'));
+  if (names.length) select(start >= 0 ? start : Math.max(0, names.indexOf('charizard')));
+
+  renderer.setAnimationLoop(() => {
+    const now = performance.now();
+    plinth.scale.x = plinth.scale.z += (view.plinth - plinth.scale.x) * 0.12;
+    aim(now);
+    if (anim) {
+      const t = (now - anim.start) % anim.ends.at(-1);
+      let k = 0;
+      while (t >= anim.ends[k]) k++;
+      if (k !== anim.shown) paint(k);
+      const pop = still ? 1 : 1 - 0.3 * (1 - Math.min(1, (now - anim.start) / 350)) ** 3;   // lands on the plinth when picked
+      sprite.scale.set(anim.gif.width * PIXEL_TO_WORLD * pop, view.h * pop, 1);
+      sprite.rotation.y = Math.atan2(camera.position.x, camera.position.z);
+    }
+    renderer.render(scene, camera);
+  });
+</script></body></html>
