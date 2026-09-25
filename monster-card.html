@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monster Card</title>
+<style>
+  @page { size: letter; margin: 0.5in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Chalkboard SE', 'Comic Sans MS', 'Segoe UI', sans-serif; color: #111; background: #fff; }
+  .page { width: 7.5in; height: 10in; margin: 0 auto; display: flex; flex-direction: column; gap: 0.25in; }
+  h1 { font-size: 40pt; text-align: center; }
+  .main { flex: 1; display: flex; gap: 0.25in; }
+  .area { flex: 1; border: 3px dashed #999; border-radius: 16px; }
+  .example { width: 1.6in; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 0.2in; font-size: 16pt; font-weight: bold; }
+  .example img { width: 1.4in; height: 1.4in; object-fit: contain; image-rendering: pixelated; }
+  .line { font-size: 18pt; border-bottom: 2px solid #111; height: 0.55in; display: flex; align-items: flex-end; padding-bottom: 4px; }
+  .print { position: fixed; top: 12px; right: 12px; font-size: 16px; padding: 8px 16px; }
+  @media print { .print { display: none; } }
+</style>
+</head>
+<body>
+  <button class="print" onclick="window.print()">🖨️ Print</button>
+  <div class="page">
+    <h1>Draw your monster!</h1>
+    <div class="main">
+      <div class="area"></div>
+      <div class="example"><img src="pikachu.gif" alt="Pikachu">like this!</div>
+    </div>
+    <div class="line">Name:</div>
+    <div class="line">What can it do?</div>
+    <div class="line"></div>
+  </div>
+</body>
+</html>
