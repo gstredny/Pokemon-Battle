@@ -16,6 +16,8 @@ X, Z = Vector((1, 0, 0)), Vector((0, 0, 1))
 def build(look, smooth, detail):
     if look['top'] == 'coat':
         _coat_tails(smooth)
+    if look['legs'] == 'skirt':
+        _skirt(smooth)
     for extra in look['extras']:
         if extra in PIECES:
             PIECES[extra](smooth, detail)
@@ -62,6 +64,18 @@ def _coat_tails(smooth):
         inner = [Vector(((rx - 0.012) * math.sin(a), -(ry - 0.012) * math.cos(a) + 0.01, z)) for a in arc]
         rows.append(outer + inner[::-1])
     smooth.grid(rows, 'torso', lambda seg, p: 'coat', None, None)
+
+
+def _skirt(smooth):
+    """A flared skirt from the waist to above the knee: a thin wall that runs
+    down the outside, turns at the hem and climbs back up the inside."""
+    profile = [(0.97, 0.155, 0.105), (0.88, 0.2, 0.15), (0.76, 0.25, 0.2), (0.62, 0.295, 0.235),
+               (0.52, 0.315, 0.25)]
+    ring = lambda z, rx, ry: [Vector((rx * math.sin(a), -ry * math.cos(a), z))
+                              for a in (2 * math.pi * k / 16 for k in range(16))]
+    outer = [ring(z, rx, ry) for z, rx, ry in profile]
+    inner = [ring(z, rx - 0.012, ry - 0.012) for z, rx, ry in profile[::-1]]
+    smooth.grid(outer + inner, 'torso', lambda seg, p: 'skirt', None, None)
 
 
 def _cape(smooth, detail):

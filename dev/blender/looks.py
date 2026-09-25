@@ -6,9 +6,11 @@ battle3d.js so a trainer looks the same as its primitive figure. Choices:
   top      jacket | tank | shirt | vest | coat | suit          torso cut (body.py)
   sleeve   none | short | long                                 how far the sleeve reaches
   glove    none | fingerless | full
-  legs     long | shorts | wide
+  legs     long | shorts | wide | skirt                        skirt: bare legs under a flared skirt
   extras   straps, cape, scarf, tie, pendant (outfit.py), headband (headwear.py),
-           cheek_marks, squint (body.py)
+           cheek_marks, squint, mustache (body.py)
+  size     optional, 1 by default: the whole trainer is scaled by it (the kids are smaller)
+  head     optional, 1 by default: the head and hair are scaled by it (kids have big heads)
 Palette names are the paint keys those builders use.
 """
 

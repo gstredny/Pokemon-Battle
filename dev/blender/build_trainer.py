@@ -17,6 +17,7 @@ import struct
 import sys
 
 import bpy
+from mathutils import Vector
 
 sys.dont_write_bytecode = True   # keep __pycache__ out of dev/blender
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -34,6 +35,7 @@ THROW_SECONDS = 1.2
 PARTS = ['torso', 'neck', 'head', 'hair', 'armL', 'armR', 'thumbL', 'thumbR', 'legL', 'legR', 'shoeL', 'shoeR']
 NODES = [name for name, _, _ in rig.JOINTS] + ['hand']
 SHARED_PAINT = {'eyeWhite': '#ffffff'}
+NECK_V = Vector((0, 0, 1.40))   # the head grows from here, so it stays on the neck
 
 
 def linear(hex_colour):
@@ -86,6 +88,13 @@ def coloured(me, face_paints, keys, palette):
     me.materials.append(mat)
 
 
+def grow_head(mb, k):
+    """Scale every head and hair point of builder `mb` by k about the neck."""
+    moved = {i for face, part in zip(mb.faces, mb.parts) if part in ('head', 'hair') for i in face}
+    for i in moved:
+        mb.verts[i] = NECK_V + (mb.verts[i] - NECK_V) * k
+
+
 def build(tid):
     look = LOOKS[tid]
     palette = dict(SHARED_PAINT, **look['palette'])
@@ -98,6 +107,8 @@ def build(tid):
     body.build(look, smooth, detail)
     headwear.build(look, smooth, detail)
     outfit.build(look, smooth, detail)
+    for mb in (smooth, detail):
+        grow_head(mb, look.get('head', 1.0))
     keys = sorted(set(smooth.paints + detail.paints))
     missing = [k for k in keys if k not in palette]
     if missing:
@@ -113,6 +124,7 @@ def build(tid):
     bpy.context.scene.collection.objects.link(obj)
     rig.bind(obj, arm, vertex_parts)
     rig.add_clips(arm)
+    arm.scale = [look.get('size', 1.0)] * 3     # the feet stay on the ground: the rig's origin is between them
 
     path = os.path.join(ROOT, 'models', 'trainers', f'{tid}.glb')
     bpy.ops.export_scene.gltf(

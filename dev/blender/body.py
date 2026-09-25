@@ -17,7 +17,7 @@ HEAD_R = (0.182, 0.19, 0.205)
 BELT_Z, COLLAR_Z = 0.90, 1.26
 SLEEVE_END = {'none': 9.0, 'short': 1.03, 'long': 0.735}
 WRIST_Z, KNUCKLE_Z = 0.735, 0.62
-HEM_Z = {'long': 0.0, 'wide': 0.0, 'shorts': 0.73}
+HEM_Z = {'long': 0.0, 'wide': 0.0, 'shorts': 0.73, 'skirt': 0.73}
 X, Z = Vector((1, 0, 0)), Vector((0, 0, 1))
 joint = {name: Vector(pos) for name, _, pos in JOINTS}
 
@@ -157,3 +157,7 @@ def _face(look, mb):
     blob(mb, p, n, 0.013, 0.012, 0.013, 'head', 'skin', 6)
     p, n = on(0, -0.42, 0.002)
     blob(mb, p, n, 0.028, 0.007, 0.006, 'head', 'mouth')
+    if 'mustache' in look['extras']:            # George: a thick mustache over the lip
+        for s in (-1, 1):
+            p, n = on(s * 0.14, -0.32, 0.004)
+            blob(mb, p, n, 0.058, 0.02, 0.013, 'head', 'hair', 8, s * -0.35)
