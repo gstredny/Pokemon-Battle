@@ -926,9 +926,27 @@ class Trainer {
 }
 
 // ---------------------------------------------------------------------------
-// Pokeball
+// Pokeball, and the winner's trophy: Blender models (dev/blender/build_props.py)
+// loaded once. Until the ball arrives, a ball of primitives stands in.
 // ---------------------------------------------------------------------------
+const props3d = {};
+['pokeball', 'trophy'].forEach(name => new GLTFLoader().load(new URL(`models/props/${name}.glb`, import.meta.url).href,
+  gltf => { props3d[name] = gltf.scene; }, undefined, err => console.warn(`Battle3D: ${name}.glb did not load:`, err.message || err)));
+
+// A copy of a prop with its own materials, so one can be tinted without the rest.
+function propCopy(name) {
+  const copy = props3d[name].clone(true);
+  copy.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.castShadow = true; } });
+  return copy;
+}
+
 function makePokeball() {
+  if (props3d.pokeball) {
+    const ball = propCopy('pokeball');
+    ball.userData.lid = ball.getObjectByName('lid');   // hinged at the back: rotating it about x opens the ball
+    ball.userData.radius = 0.17;
+    return ball;
+  }
   const r = 0.17;
   const group = new THREE.Group();
   const bottom = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), std('#f4f4f4', { roughness: 0.3, metalness: 0.05 }));
@@ -1233,6 +1251,9 @@ class BattleScene {
 
     this.flashLight = new THREE.PointLight('#ffffff', 0, 12, 1.5);
     this.scene.add(this.flashLight);
+    // Each trainer's team: three pokeballs on a little stand, dark once that Pokemon faints.
+    this.racks = { 1: new THREE.Group(), 2: new THREE.Group() };
+    this.scene.add(this.racks[1], this.racks[2]);
     this.glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: SOFT_DOT(), color: '#ffffff', transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }));
     this.glow.scale.set(0.01, 0.01, 1);
     this.scene.add(this.glow);
@@ -1267,6 +1288,7 @@ class BattleScene {
         this.trainers[side].root.position.copy(layout[side].trainer);
         this.trainers[side].root.lookAt(layout[other].spot.x, 0, layout[other].spot.z);
         this.actors[side].pos.copy(layout[side].spot);
+        this.racks[side].position.copy(layout[side].trainer).add(new THREE.Vector3(side === 1 ? 0.95 : -0.95, 0, 0.7));
         // A 3D monster turns three-quarters toward its foe, keeping its face to the camera.
         this.actors[side].facing = Math.sign(layout[other].spot.x - layout[side].spot.x) * 0.75;
       });
@@ -1335,6 +1357,7 @@ class BattleScene {
     this.camera.lookAt(this.pose.look);
     this.camera.updateMatrixWorld();
 
+    this.scene.userData.shake = this.shake;   // places like the City let their crowd react
     this.renderer.render(this.scene, this.camera);
     this.actors[2].update(this.camera, this.width, this.height, this.tmpA, this.tmpB, dt);
     this.actors[1].update(this.camera, this.width, this.height, this.tmpA, this.tmpB, dt);
@@ -1603,6 +1626,53 @@ class BattleScene {
     p.y += 1;
     p.project(this.camera);
     return { x: (p.x + 1) / 2 * this.width, y: (1 - p.y) / 2 * this.height };
+  }
+
+  // Show which of a trainer's Pokemon can still fight: alive[i] for each of the three.
+  team(side, alive) {
+    const rack = this.racks[side];
+    if (!props3d.pokeball) {   // still loading: try again shortly
+      if (!this.disposed) setTimeout(() => this.team(side, alive), 400);
+      return;
+    }
+    if (!rack.children.length) {
+      const stand = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.1, 0.34), std('#3a3f48', { roughness: 0.6 }));
+      stand.position.y = 0.05;
+      stand.castShadow = stand.receiveShadow = true;
+      rack.add(stand);
+      [-0.42, 0, 0.42].forEach(x => {
+        const ball = propCopy('pokeball');
+        ball.scale.setScalar(0.8);
+        ball.position.set(x, 0.1 + 0.17 * 0.8, 0);
+        ball.lookAt(this.camera.position.x, ball.position.y, this.camera.position.z);
+        rack.add(ball);
+      });
+    }
+    rack.children.slice(1).forEach((ball, i) => {
+      ball.traverse(o => {
+        if (!o.isMesh) return;
+        o.userData.colour ??= o.material.color.clone();
+        o.material.color.copy(o.userData.colour).multiplyScalar(alive[i] ? 1 : 0.25);   // dark once it fainted
+      });
+    });
+  }
+
+  // The last Pokemon has fallen: a golden trophy rises by the winner, who cheers.
+  award(side) {
+    this.celebrate(side);
+    if (!props3d.trophy) return;
+    const trophy = propCopy('trophy');
+    const at = this.layout[side].trainer.clone().lerp(this.layout[side].spot, 0.45);
+    trophy.position.copy(at);
+    this.scene.add(trophy);
+    this.flash(at, '#ffd700', 3, 0.9);
+    this.particles(at.clone().add(new THREE.Vector3(0, 1, 0)), '#ffe066', 60, 4, 1.2, 3);
+    this.timeline.tween(1.6, k => {
+      const e = easeOutBack(Math.min(k * 1.4, 1));
+      trophy.scale.setScalar(1.3 * e);
+      trophy.position.y = e * 0.2;
+      trophy.rotation.y = k * Math.PI * 2;
+    });
   }
 
   // Winner's trainer celebrates.

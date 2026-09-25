@@ -57,6 +57,17 @@ their Blender clips: Throw, Cheer (the winner) and Slump (the loser), from
 `dev/blender/rig.py`. The arena harness takes `&p1=monsters/smore.png` to show a
 kid monster's model, flames and all.
 
+## Props
+
+`blender -b -P dev/blender/build_props.py` builds `models/props/pokeball.glb`
+(its top half is the node `lid`, hinged at the back, so the game opens it) and
+`models/props/trophy.glb`, and renders `trophy.png` for the winner screen. The
+game throws the Blender pokeball, keeps three by each trainer on a stand (dark
+once that Pokemon faints: `team(side, alive)`), and raises the trophy by the
+winner (`award(side)`) before the winner screen. The City's grandstands, fans,
+road barriers, cones, bus stop and parked cars are in `dev/blender/places/city.py`;
+its fans bounce, and jump when the camera shakes (`scene.userData.shake`).
+
 ## Screenshots from the terminal
 
 ```

@@ -1837,6 +1837,24 @@ function PokemonBattle() {
   useEffect(() => { if (scene3d && attackAnim) scene3d.attack(attackAnim.side === 'left' ? 1 : 2, attackAnim.type, attackAnim.kind, attackAnim.result); }, [scene3d, attackAnim]);
   useEffect(() => { if (scene3d && flashTarget) scene3d.hit(flashTarget); }, [scene3d, flashTarget]);
   useEffect(() => { if (scene3d && faintingPokemon) scene3d.faint(faintingPokemon); }, [scene3d, faintingPokemon]);
+  // The pokeballs by each trainer go dark as their Pokemon faint.
+  useEffect(() => {
+    if (!scene3d || !player1HP.length) return;
+    scene3d.team(1, player1HP.map(hp => hp > 0));
+    scene3d.team(2, player2HP.map(hp => hp > 0));
+  }, [scene3d, player1HP, player2HP]);
+
+  // The battle is over (winner 1 or 2, or 0 for a draw). In 3D a golden trophy
+  // rises by the winner first, then the winner screen follows.
+  const endBattle = (w) => {
+    if (w) playSound('victory');
+    setShowConfetti(true);
+    setWinner(w);
+    if (scene3d && w) {
+      scene3d.award(w);
+      setTimeout(() => setPhase('gameover'), 2600);
+    } else setPhase('gameover');
+  };
 
   const resetGame = () => {
     setPhase('trainer1'); setTrainer1(null); setTrainer2(null);
@@ -2103,8 +2121,8 @@ function PokemonBattle() {
             setFaintingPokemon(null);
             const nextAlive = attackerHP.findIndex((hp) => hp > 0);
             const defenderAlive = defenderHP.findIndex((hp) => hp > 0);
-            if (nextAlive === -1 && defenderAlive === -1) { setShowConfetti(true); setPhase('gameover'); setWinner(0); return; }
-            else if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(isP1 ? 2 : 1); setPhase('gameover'); return; }
+            if (nextAlive === -1 && defenderAlive === -1) { endBattle(0); return; }
+            else if (nextAlive === -1) { endBattle(isP1 ? 2 : 1); return; }
             else { if (isP1) setPlayer1Active(nextAlive); else setPlayer2Active(nextAlive); setMessage(`Go, ${(isP1 ? player1Team : player2Team)[nextAlive].name}!`); }
           }, 800);
         }
@@ -2116,7 +2134,7 @@ function PokemonBattle() {
           setTimeout(() => {
             setFaintingPokemon(null);
             const nextAlive = defenderHP.findIndex((hp) => hp > 0);
-            if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(turn); setPhase('gameover'); return; }
+            if (nextAlive === -1) { endBattle(turn); return; }
             else { setDefenderActive(nextAlive); setMessage(`Go, ${defenderTeam[nextAlive].name}!`); }
             finishTurn();
           }, 1000);
@@ -2128,7 +2146,7 @@ function PokemonBattle() {
           setTimeout(() => {
             setFaintingPokemon(null);
             const nextAlive = attackerHP.findIndex((hp) => hp > 0);
-            if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(isP1 ? 2 : 1); setPhase('gameover'); return; }
+            if (nextAlive === -1) { endBattle(isP1 ? 2 : 1); return; }
             else { if (isP1) setPlayer1Active(nextAlive); else setPlayer2Active(nextAlive); setMessage(`Go, ${(isP1 ? player1Team : player2Team)[nextAlive].name}!`); }
             finishTurn();
           }, 800);
@@ -2157,7 +2175,7 @@ function PokemonBattle() {
             setTimeout(() => {
               setFaintingPokemon(null);
               const nextAlive = curHP.findIndex((hp) => hp > 0);
-              if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(turn); setPhase('gameover'); return; }
+              if (nextAlive === -1) { endBattle(turn); return; }
               else { if (isP1) setPlayer2Active(nextAlive); else setPlayer1Active(nextAlive); }
               switchTurn();
             }, 800);
@@ -2429,7 +2447,7 @@ function PokemonBattle() {
           @keyframes winnerPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         `}</style>
         <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '16px', maxWidth: '100%', padding: '0 12px' }}>
-          <div style={{ fontSize: '70px', animation: 'bounce 1s infinite' }}>🏆</div>
+          <img src="trophy.png" alt="Trophy" style={{ width: '110px', height: '110px', animation: 'bounce 1s infinite', filter: 'drop-shadow(0 0 18px #FFD700)' }} />
           
           {winnerTrainer ? (
             <div style={{ textAlign: 'center' }}>

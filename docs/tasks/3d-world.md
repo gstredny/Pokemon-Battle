@@ -107,3 +107,11 @@ the new CACHE_VERSION.
 - 31 sounds, 1.58 MB: 18 move types, hit, big hit, miss, throw, ball-open, faint, crowd cheer, and six 24 s place loops (their end is crossfaded into their start). All are audible with no clipping (ffmpeg volumedetect: peaks −0.5 to −16.7 dB).
 - In a full battle, every sound played: the place loop, throws, ball opens, moves, hits, misses, faints and the big hit. The cheer hadn't loaded yet, so it is now fetched on the first tap too.
 - Songs stay OFF: George's latest word (15:15) overrides the goal's "Songs back on". The mute button silences everything, because it suspends the shared AudioContext.
+- Step 5 pushed and live: 6dbab64, cache v30.
+
+### Step 6: props
+- The Blender pokeball (45 KB) and golden trophy (59 KB), plus a rendered trophy.png, come from dev/blender/build_props.py. The first ball's black band sat inside the sphere, so the band was widened.
+- Each trainer has a stand of three team pokeballs, darkened when that Pokemon faints. The first version reset every part to white (color.setScalar(1)), so each part now keeps its own colour.
+- The trophy rises by the winner with sparkles while they cheer. All five ways a battle ends now go through endBattle, which waits 2.6 s in 3D before the winner screen. The winner screen shows trophy.png instead of the 🏆 emoji.
+- City: two grandstands with 6-colour fans that bounce and jump on camera shake, concrete road barriers (Poly Haven), traffic cones, a bus stop and covered parked cars (Poly Haven). Rebuilt at 4.42 MB, 82,622 triangles.
+- Checks: 35/35 tests; play-check PASSED (33 moves) and --no3d PASSED. Photos show the cones, car, stands and fans, the red-and-white balls (the fainted ones dark), the trophy moment and the winner screen.
