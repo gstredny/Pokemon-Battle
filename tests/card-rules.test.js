@@ -37,15 +37,25 @@ test('the four powers become the four moves', () => {
   const [big, fast, trick, save] = monsterFromCard(card(), 1).attacks;
   assert.deepEqual(big, { name: 'Lava Chomp', power: 110, accuracy: 75, type: 'fire' });
   assert.deepEqual(fast, { name: 'Spark Nip', power: 40, accuracy: 100, type: 'fire', priority: true });
-  assert.deepEqual(trick, { name: 'Smoke Puff', power: 0, accuracy: 75, type: 'fire', effect: 'sleep', effectChance: 100 });
-  assert.deepEqual(save, { name: 'Snack Time', power: 0, accuracy: 100, type: 'fire', heal: 50 });
+  assert.deepEqual(trick, { name: 'Smoke Puff', power: 60, accuracy: 100, type: 'fire', effect: 'sleep', effectChance: 50 });
+  assert.deepEqual(save, { name: 'Snack Time', power: 0, accuracy: 100, type: 'fire', heal: 30 });
+});
+
+// Kids tap moves at random. With a Trick that did no damage and a heal of
+// half their health, kid monsters healed faster than they were hurt: in the
+// battle simulator, three kid monsters against three others took a median of
+// 154 moves, and 3 in 10 battles never ended (George, 2026-09-25: "none of them
+// are dying"). A Trick that also hits, and a smaller heal, bring it to about 50.
+test('a Trick hits as well as doing its trick, so every move but Save-Me hurts', () => {
+  const [, , trick] = monsterFromCard(card(), 1).attacks;
+  assert.ok(trick.power > 0);
 });
 
 test('power words map to battle effects', () => {
   const moves = (trickDoes, saveDoes) => monsterFromCard(card({ powers: { ...card().powers, trick: { name: 'T', does: trickDoes }, saveMe: { name: 'S', does: saveDoes } } }), 1).attacks;
   const [, , zap, faster] = moves('zap', 'faster');
   assert.equal(zap.effect, 'paralysis');
-  assert.equal(zap.accuracy, 90);
+  assert.equal(zap.accuracy, 100);
   assert.equal(faster.boostSpd, true);
   assert.equal(moves('freeze', 'stronger')[2].effect, 'frozen');
   assert.equal(moves('freeze', 'stronger')[3].boostAtk, true);

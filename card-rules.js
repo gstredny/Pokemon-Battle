@@ -11,7 +11,9 @@
   // What each Trick does in battle.
   const TRICK_EFFECTS = { burn: 'burn', freeze: 'frozen', zap: 'paralysis', poison: 'poison', sleep: 'sleep' };
   // What each Save-Me does in battle. copy turns into the foe, like Ditto's Transform.
-  const SAVE_ME_FIELDS = { heal: { heal: 50 }, stronger: { boostAtk: true }, tougher: { boostDef: true }, faster: { boostSpd: true }, copy: { transform: true } };
+  // A heal gives back 30%, not half: kids tap at random, and half made kid
+  // monsters heal faster than they were hurt (see tests/card-rules.test.js).
+  const SAVE_ME_FIELDS = { heal: { heal: 30 }, stronger: { boostAtk: true }, tougher: { boostDef: true }, faster: { boostSpd: true }, copy: { transform: true } };
 
   // Records are typed in by hand, so check one before it can break the game.
   function checkCard(card) {
@@ -51,7 +53,8 @@
       attacks: [
         { name: powers.bigHit, power: 110, accuracy: 75, type },
         { name: powers.fastHit, power: 40, accuracy: 100, type, priority: true },
-        { name: powers.trick.name, power: 0, accuracy: powers.trick.does === 'sleep' ? 75 : 90, type, effect: TRICK_EFFECTS[powers.trick.does], effectChance: 100 },
+        // A Trick hits too, and does its trick half the time, so a random tap still hurts.
+        { name: powers.trick.name, power: 60, accuracy: 100, type, effect: TRICK_EFFECTS[powers.trick.does], effectChance: 50 },
         { name: powers.saveMe.name, power: 0, accuracy: 100, type, ...SAVE_ME_FIELDS[powers.saveMe.does] },
       ],
     };
