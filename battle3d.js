@@ -1118,9 +1118,12 @@ const LAYOUTS = {
     2: { trainer: V(3.7, 0, -5.9), spot: V(1.35, 0, -3.8) },
     camera: { pos: V(0.1, 5.2, 10.8), look: V(0.05, 1.0, -2.4), fov: 55 },
   },
+  // Sideways (how the game is played on a phone), the two trainers stand at the
+  // left and right edges of the clearing at the same distance from the camera,
+  // so they look the same size, and their Pokemon fight between them.
   landscape: {
-    1: { trainer: V(-3.3, 0, 2.6), spot: V(-2.0, 0, 0.5) },
-    2: { trainer: V(4.5, 0, -5.4), spot: V(2.2, 0, -3.6) },
+    1: { trainer: V(-5.2, 0, 0.8), spot: V(-2.1, 0, 0.1) },
+    2: { trainer: V(5.4, 0, 0.8), spot: V(2.3, 0, -2.6) },
     camera: { pos: V(0.4, 3.6, 9.4), look: V(0.2, 1.1, -1.8), fov: 40 },
   },
 };
