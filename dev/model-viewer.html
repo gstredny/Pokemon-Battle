@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Model viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#1a1a2e;font-family:sans-serif}
+#info{position:absolute;top:6px;left:8px;color:#fff;font-size:12px;z-index:5;white-space:pre}
+#err{position:absolute;top:60px;left:8px;color:#f66;z-index:5;white-space:pre-wrap;max-width:90vw}</style>
+</head><body><div id="info"></div><pre id="err"></pre>
+<script type="module">
+  // Loads one .glb the way the game will, lights it like an arena, spins it,
+  // and plays a named animation clip. Query: ?model=../models/trainers/ash.glb&clip=Throw
+  import * as THREE from '../vendor/three.min.js';
+  import { GLTFLoader } from '../vendor/GLTFLoader.min.js';
+  window.errors = [];
+  const fail = msg => { window.errors.push(msg); document.getElementById('err').textContent += msg + '\n'; };
+  window.addEventListener('error', e => fail(String(e.message)));
+  const q = new URLSearchParams(location.search);
+  const url = q.get('model');
+  if (!url) fail('Add ?model=<path to a .glb> to the address');
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  document.body.appendChild(renderer.domElement);
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color('#2b3a55');
+  scene.add(new THREE.HemisphereLight('#dfe9ff', '#3a4a30', 1.1));
+  const sun = new THREE.DirectionalLight('#fff6e6', 2.8); sun.position.set(4, 8, 5); sun.castShadow = true; scene.add(sun);
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(4, 48), new THREE.MeshStandardMaterial({ color: '#5d8a4a', roughness: 1 }));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+  scene.add(new THREE.GridHelper(8, 16, '#8899aa', '#44556a'));
+  const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.05, 100);
+  const pivot = new THREE.Group(); scene.add(pivot);
+  let mixer = null, model = null;
+  const info = [];
+  window.loaded = false;
+  if (url) new GLTFLoader().load(url, gltf => {
+    model = gltf.scene;
+    model.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+    // Stand it on the ground, centred, and frame it.
+    model.position.sub(center).setY(-box.min.y);
+    pivot.add(model);
+    const h = Math.max(size.y, size.x, size.z);
+    camera.position.set(0, h * 0.7, h * 2.6);
+    camera.lookAt(0, h * 0.45, 0);
+    let tris = 0; model.traverse(o => { if (o.isMesh) { const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3; } });
+    const joints = ['hips','torso','head','shoulderL','shoulderR','elbowL','elbowR','hipL','hipR','kneeL','kneeR','hand'].filter(n => model.getObjectByName(n));
+    info.push(`${url}`, `size ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)} m, ${Math.round(tris)} triangles`, `clips: ${gltf.animations.map(a => a.name).join(', ') || 'none'}`, `trainer joints found: ${joints.length}/12 ${joints.join(' ')}`);
+    const clipName = q.get('clip');
+    if (clipName) {
+      const clip = THREE.AnimationClip.findByName(gltf.animations, clipName);
+      if (!clip) fail(`No clip named "${clipName}"`);
+      else { mixer = new THREE.AnimationMixer(model); mixer.clipAction(clip).play(); }
+    }
+    document.getElementById('info').textContent = info.join('\n');
+    window.loaded = { size: size.toArray(), triangles: Math.round(tris), clips: gltf.animations.map(a => a.name), joints };
+  }, undefined, err => fail('Could not load ' + url + ': ' + (err.message || err)));
+  let last = performance.now();
+  const frame = () => {
+    requestAnimationFrame(frame);
+    const now = performance.now(), dt = (now - last) / 1000; last = now;
+    if (q.get('spin') !== '0') pivot.rotation.y += dt * 0.6;
+    mixer?.update(dt);
+    renderer.render(scene, camera);
+  };
+  frame();
+  addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+</script></body></html>

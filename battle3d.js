@@ -763,6 +763,9 @@ function buildTrainer(look) {
     j.head.add(band);
   }
 
+  // Name the joints so an exported .glb carries the same rig a Blender model must expose.
+  Object.entries(j).forEach(([name, obj]) => { obj.name = name; });
+  root.name = 'trainer';
   root.scale.setScalar(0.92);
   return { root, joints: j };
 }

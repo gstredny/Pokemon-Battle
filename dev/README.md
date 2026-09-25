@@ -55,3 +55,16 @@ named objects so the throw can drive them: `hips`, `torso`, `head`, `shoulderL`,
 `shoulderR`, `elbowL`, `elbowR`, `hipL`, `hipR`, `kneeL`, `kneeR`, and an empty
 called `hand` on the right hand where the pokeball attaches. A clip named
 `Throw` that releases at 0.46 s replaces the procedural throw.
+
+## Checking a .glb model
+
+```
+node dev/export-trainer.mjs ash     # writes models/trainers/ash.glb from the built-in figure
+```
+
+Open http://localhost:8777/dev/model-viewer.html?model=../models/trainers/ash.glb&clip=Throw
+to see any `.glb` lit like an arena. It prints the size, triangle count, clip
+names and which of the 12 trainer joints it found, and shows an error if the
+file or the clip is missing. `models/trainers/ash.glb` and `misty.glb` are the
+built-in figures exported this way: import one into Blender as a starting
+point, keep the joint names, add a `Throw` clip, export, and check it here.
