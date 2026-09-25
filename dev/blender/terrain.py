@@ -69,6 +69,57 @@ def ground(name, material, height, size=220.0, cells=80, tiles=48.0, center=(0.0
     return obj
 
 
+def path_distance(x, z, path):
+    """How far (x, z) is from the nearest point of the polyline `path` [(x, z), ...]."""
+    best = float('inf')
+    for (ax, az), (bx, bz) in zip(path, path[1:]):
+        dx, dz = bx - ax, bz - az
+        t = max(0.0, min(1.0, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)))
+        best = min(best, math.hypot(x - ax - t * dx, z - az - t * dz))
+    return best
+
+
+def ribbon(name, path, width, height, material, lift=0.02, step=1.0):
+    """A band `width` wide lying on the ground along `path` [(x, z), ...], for a
+    river or a road. UVs: u runs along it (one per `width` metres), v across."""
+    pts = []
+    for (ax, az), (bx, bz) in zip(path, path[1:]):
+        n = max(1, round(math.hypot(bx - ax, bz - az) / step))
+        pts += [(ax + (bx - ax) * i / n, az + (bz - az) * i / n) for i in range(n)]
+    pts.append(path[-1])
+    bm = bmesh.new()
+    uv = bm.loops.layers.uv.new('UVMap')
+    rows, along = [], 0.0
+    for k, (x, z) in enumerate(pts):
+        px, pz = pts[max(0, k - 1)]
+        nx, nz = pts[min(len(pts) - 1, k + 1)]
+        tx, tz = nx - px, nz - pz
+        tl = math.hypot(tx, tz) or 1.0
+        ox, oz = -tz / tl * width / 2, tx / tl * width / 2
+        if k:
+            along += math.hypot(x - pts[k - 1][0], z - pts[k - 1][1])
+        left = bm.verts.new(to_blender(x + ox, height(x + ox, z + oz) + lift, z + oz))
+        right = bm.verts.new(to_blender(x - ox, height(x - ox, z - oz) + lift, z - oz))
+        rows.append((left, right, along / width))
+    for (a0, b0, u0), (a1, b1, u1) in zip(rows, rows[1:]):
+        f = bm.faces.new((a0, b0, b1, a1))
+        f.normal_update()
+        if f.normal.z < 0:
+            f.normal_flip()
+        uvs = {a0: (u0, 0), b0: (u0, 1), b1: (u1, 1), a1: (u1, 0)}
+        for loop in f.loops:
+            loop[uv].uv = uvs[loop.vert]
+    mesh = bpy.data.meshes.new(name)
+    bm.to_mesh(mesh)
+    bm.free()
+    for p in mesh.polygons:
+        p.use_smooth = True
+    mesh.materials.append(material)
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    return obj
+
+
 def shoreline(height, level, angle, near=6.0, far=60.0):
     """How far out, along compass `angle` (radians), the ground dips below `level`; None if it never does."""
     lo, hi = near, far
