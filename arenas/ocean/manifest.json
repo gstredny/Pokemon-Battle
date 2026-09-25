@@ -1,0 +1,19 @@
+{
+  "id": "ocean",
+  "scene": "scene.glb",
+  "sky": {
+    "background": "sky.jpg",
+    "light": "light.hdr"
+  },
+  "patch": {
+    "color": "patch/color.jpg",
+    "normal": "patch/normal.jpg",
+    "roughness": "patch/roughness.jpg"
+  },
+  "water": {
+    "level": -0.45
+  },
+  "fog": 0.004,
+  "bytes": 6004813,
+  "triangles": 119708
+}

@@ -12,6 +12,7 @@ import { GLTFLoader } from './vendor/GLTFLoader.min.js';
 import volcano from './arenas/volcano.js';
 import cave from './arenas/cave.js';
 import junglePhoto from './arenas/jungle-photo.js';
+import ocean from './arenas/ocean.js';
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -556,6 +557,7 @@ function registerArena(def) {
 registerArena(volcano);
 registerArena(cave);
 registerArena(junglePhoto);   // the photo jungle takes the built-in jungle's place in the picker
+registerArena(ocean);         // photo places built in Blender replace the built-in ones of the same id
 const listArenas = () => Object.values(ARENAS).map(({ id, name, icon, blurb, css }) => ({ id, name, icon, blurb, css }));
 
 // ---------------------------------------------------------------------------

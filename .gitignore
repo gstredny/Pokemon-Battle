@@ -7,3 +7,4 @@ monsters/cards/
 __pycache__/
 dev/shots/
 node_modules/
+dev/blender/cache/

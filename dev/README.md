@@ -94,6 +94,28 @@ renders the full-detail tree into three cutout images for the distant trees.
 The low-poly jungle is still in `battle3d.js`; the photo one replaces it in the
 picker because it registers with the same id.
 
+## Photo places built in Blender
+
+The other places (Ocean first) are built in Blender from CC0 scans: a Poly Haven
+sky photo and its HDR, scanned ground textures, and scanned rocks, plants and
+buildings from Poly Haven and ambientCG. One script builds them, from the repo root:
+
+```
+blender -b -P dev/blender/build_place.py             # every place
+blender -b -P dev/blender/build_place.py -- ocean
+```
+
+Each place's layout lives in `dev/blender/places/<id>.py`. The first run downloads
+the full-size assets into `dev/blender/cache/` (git-ignored, hundreds of MB).
+The script writes `arenas/<id>/`: `scene.glb` (the ground and every model, small
+WebP textures, copies instanced), `sky.jpg`, `light.hdr`, the battle circle's
+textures, `manifest.json` and `LICENSES.md`. It prints every file's size and
+fails if a place goes over 7 MB or 120k triangles per frame. In the game,
+`arenas/photo-place.js` loads any of them; `arenas/<id>.js` names the place and
+adds what moves (the Ocean's sea and surf). Objects named `cast_...` in Blender
+cast shadows; keep that to the few big things near the middle.
+After a rebuild, list any new file in `assets.json` (`node --test tests/places.test.js` checks).
+
 ## Trainers are Blender models
 
 Each trainer loads `models/trainers/<id>.glb` and swaps it in for its
