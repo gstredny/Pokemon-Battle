@@ -1456,8 +1456,8 @@ const MuteButton = () => {
 };
 
 // The lit stand on the pick screen, like the Pokemon gallery page. The Pokemon
-// just picked pops onto it, named in the colours of the trainer who picked it.
-const PickStage = ({ pokemon, trainer, popKey }) => (
+// being looked at, or else the one just picked, pops onto it under its title.
+const PickStage = ({ pokemon, title, color, popKey }) => (
   <div style={{ position: 'relative', height: '100%', minHeight: '160px', borderRadius: '14px', overflow: 'hidden', border: '1px solid #2c3450', background: 'radial-gradient(ellipse 55% 30% at 50% 80%, rgba(255,240,200,0.28), transparent 70%), linear-gradient(180deg, #0b1020 0%, #1b2130 65%, #121726 100%)' }}>
     <style>{`
       @keyframes stagePop { 0% { transform: translateY(30px) scale(0.2); opacity: 0; } 60% { transform: translateY(-12px) scale(1.12); opacity: 1; } 100% { transform: none; } }
@@ -1467,19 +1467,44 @@ const PickStage = ({ pokemon, trainer, popKey }) => (
     <div style={{ position: 'absolute', left: '15%', right: '15%', top: 0, height: '82%', background: 'linear-gradient(180deg, rgba(255,245,210,0.22), rgba(255,245,210,0.03))', clipPath: 'polygon(38% 0, 62% 0, 100% 100%, 0 100%)' }} />
     {/* The stand: its side, then its round top */}
     <div style={{ position: 'absolute', left: '19%', right: '19%', bottom: '8%', height: '12%', borderRadius: '0 0 50% 50% / 0 0 45% 45%', background: 'linear-gradient(90deg, #8f8676, #d9cfbd 45%, #9d9383)' }} />
-    <div style={{ position: 'absolute', left: '19%', right: '19%', bottom: '15%', height: '10%', borderRadius: '50%', background: 'radial-gradient(ellipse at 50% 40%, #f3ecdf, #cfc4b1)', boxShadow: trainer ? `0 0 22px ${trainer.color}aa` : 'none' }} />
+    <div style={{ position: 'absolute', left: '19%', right: '19%', bottom: '15%', height: '10%', borderRadius: '50%', background: 'radial-gradient(ellipse at 50% 40%, #f3ecdf, #cfc4b1)', boxShadow: color ? `0 0 22px ${color}aa` : 'none' }} />
     {pokemon ? (
       <>
         <div key={popKey} style={{ position: 'absolute', left: 0, right: 0, bottom: '20%', height: '50%', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', animation: 'stagePop 0.5s ease-out both' }}>
           <img src={pokemon.img} alt={pokemon.name} style={{ height: '100%', maxWidth: '80%', objectFit: 'contain', imageRendering: 'pixelated', filter: 'drop-shadow(0 8px 6px rgba(0,0,0,0.55))', animation: 'stageBob 1.6s ease-in-out 0.5s infinite' }} />
         </div>
-        <div style={{ position: 'absolute', left: '64px', right: '8px', top: '6%', textAlign: 'center', color: trainer.color, fontWeight: 'bold', fontSize: '18px', textShadow: '0 2px 4px #000' }}>{trainer.name}'s {pokemon.name}!</div>
+        <div style={{ position: 'absolute', left: '64px', right: '8px', top: '6%', textAlign: 'center', color, fontWeight: 'bold', fontSize: '18px', textShadow: '0 2px 4px #000' }}>{title}</div>
       </>
     ) : (
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: '30%', textAlign: 'center', color: '#8d95ab', fontSize: '56px', fontWeight: 'bold' }}>?</div>
     )}
   </div>
 );
+
+// What a Pokemon is like, to choose by on the pick screen: its stats as bars,
+// its moves, and the types its own attacks hit hard. The button picks it.
+const PokemonInfo = ({ pokemon, color, onPick }) => {
+  const strongVs = Object.entries(TYPE_CHART[pokemon.type] || {}).filter(([, x]) => x > 1).map(([t]) => TYPE_DATA[t].icon);
+  const stats = [['HP', pokemon.hp, 250, '#4CAF50'], ['Power', pokemon.atk, 150, '#E53935'], ['Defense', pokemon.def, 150, '#2196F3'], ['Speed', pokemon.spd, 150, '#FFC107']];
+  return (
+    <div style={{ background: 'rgba(10,14,28,0.92)', border: `2px solid ${TYPE_DATA[pokemon.type].color}`, borderRadius: '12px', padding: '6px 8px', color: 'white' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 26px', gap: '2px 6px', alignItems: 'center', fontSize: '11px', fontWeight: 'bold' }}>
+        {stats.map(([label, value, max, barColor]) => (
+          <React.Fragment key={label}>
+            <span>{label}</span>
+            <div style={{ height: '8px', background: '#333', borderRadius: '4px', overflow: 'hidden' }}><div style={{ width: `${Math.min(100, value / max * 100)}%`, height: '100%', background: barColor }} /></div>
+            <span style={{ textAlign: 'right' }}>{value}</span>
+          </React.Fragment>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', margin: '5px 0 3px' }}>
+        {pokemon.attacks.map(a => <div key={a.name} style={{ background: `${TYPE_DATA[a.type].color}55`, borderRadius: '5px', padding: '2px 4px', fontSize: '10px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{TYPE_DATA[a.type].icon} {a.name}</div>)}
+      </div>
+      {strongVs.length > 0 && <div style={{ fontSize: '11px', fontWeight: 'bold' }}>Strong against {strongVs.join(' ')}</div>}
+      <button onClick={onPick} style={{ width: '100%', marginTop: '5px', padding: '7px', fontSize: '16px', fontWeight: 'bold', color: 'white', background: color, border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', textShadow: '0 1px 2px #000' }}>Pick {pokemon.name}!</button>
+    </div>
+  );
+};
 
 // VS Screen
 const VSScreen = ({ team1, team2, trainer1, trainer2, onComplete }) => {
@@ -1716,6 +1741,7 @@ const HudCard = ({ trainer, team, hpArray, activeIndex, statuses, boosts, isTurn
 
 function PokemonBattle() {
   const [phase, setPhase] = useState('title');
+  const [browsing, setBrowsing] = useState(null); // the Pokemon being looked at on the pick screen
   const [trainer1, setTrainer1] = useState(null);
   const [trainer2, setTrainer2] = useState(null);
   const [player1Team, setPlayer1Team] = useState([]);
@@ -1808,7 +1834,7 @@ function PokemonBattle() {
     setPlayer2Boosts([{atk:0,def:0,spd:0},{atk:0,def:0,spd:0},{atk:0,def:0,spd:0}]);
     setPlayer1SleepTurns([0,0,0]); setPlayer2SleepTurns([0,0,0]);
     setTurn(1); setMessage(''); setWinner(null); setAnimating(false); setFloatingTexts([]);
-    setShowVS(false); setShowConfetti(false); setScene(null);
+    setShowVS(false); setShowConfetti(false); setScene(null); setBrowsing(null);
     setUse3D(false); setScene3d(null); setBusy3D(0);
   };
 
@@ -1817,6 +1843,7 @@ function PokemonBattle() {
     if (phase === "trainer2") { setPhase("trainer1"); setTrainer2(null); }
     else if (phase === "draft") {
       // Undo the last pick; with none left, go back to choosing trainers.
+      setBrowsing(null);
       if (player1Team.length > player2Team.length) setPlayer1Team(player1Team.slice(0, -1));
       else if (player2Team.length) setPlayer2Team(player2Team.slice(0, -1));
       else setPhase("trainer2");
@@ -1827,9 +1854,15 @@ function PokemonBattle() {
   // Players take turns picking (Player 1, Player 2, Player 1...) until each has three.
   const draftPlayer = player1Team.length > player2Team.length ? 2 : 1;
   const draftDone = player2Team.length === 3;
-  const draftPokemon = (pokemon) => {
+  // Tapping a Pokemon shows it on the stand; its Pick button adds it to the team.
+  const browsePokemon = (pokemon) => {
     if (draftDone) return;
     playPokemonCry(pokemon.cry);
+    setBrowsing(pokemon);
+  };
+  const draftPokemon = (pokemon) => {
+    playSound('select');
+    setBrowsing(null);
     if (draftPlayer === 1) setPlayer1Team([...player1Team, pokemon]);
     else setPlayer2Team([...player2Team, pokemon]);
   };
@@ -2181,6 +2214,7 @@ function PokemonBattle() {
     // The Pokemon picked most recently stands on the stage.
     const lastSide = player1Team.length > player2Team.length ? 1 : player2Team.length ? 2 : null;
     const lastPick = lastSide === 1 ? player1Team.at(-1) : lastSide === 2 ? player2Team.at(-1) : null;
+    const lastPicker = lastSide === 1 ? trainer1 : trainer2;
     // One trainer's three slots; it glows while it is that trainer's turn.
     const teamSlots = (trainer, team, active) => (
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: `${trainer.color}33`, padding: '5px 8px', borderRadius: '8px', border: `2px solid ${active ? '#FFD700' : trainer.color}`, boxShadow: active ? `0 0 14px ${trainer.color}` : 'none', transform: active ? 'scale(1.08)' : 'scale(1)', opacity: active || draftDone ? 1 : 0.55, transition: 'all 0.2s' }}>
@@ -2199,8 +2233,13 @@ function PokemonBattle() {
         <AnimatedBackground />
         <BackButton onClick={goBack} />
         <div style={{ position: 'relative', zIndex: 1, flex: 1, minHeight: 0, display: 'flex', flexDirection: landscape ? 'row' : 'column', gap: '8px', padding: '8px' }}>
-        <div style={{ flex: landscape ? '0 0 36%' : '0 0 200px' }}>
-          <PickStage pokemon={lastPick} trainer={lastSide === 1 ? trainer1 : trainer2} popKey={`${lastSide}-${taken.length}`} />
+        <div style={{ flex: landscape ? '0 0 36%' : '0 0 auto', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: 0 }}>
+          <div style={{ flex: 1, minHeight: landscape ? 0 : '160px' }}>
+            {browsing
+              ? <PickStage pokemon={browsing} title={browsing.name} color={TYPE_DATA[browsing.type].color} popKey={`look-${browsing.id}`} />
+              : <PickStage pokemon={lastPick} title={lastPick && `${lastPicker.name}'s ${lastPick.name}!`} color={lastPicker?.color} popKey={`${lastSide}-${taken.length}`} />}
+          </div>
+          {browsing && <PokemonInfo pokemon={browsing} color={picker.color} onPick={() => draftPokemon(browsing)} />}
         </div>
         <div style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 12px', margin: '0 60px 8px' }}>
@@ -2217,7 +2256,7 @@ function PokemonBattle() {
             )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '3px', margin: '0 auto', gridAutoRows: 'min-content' }}>
-            {POKEMON.map(pokemon => <PokemonCard key={pokemon.id} pokemon={pokemon} disabled={taken.some(p => p.id === pokemon.id)} onClick={() => draftPokemon(pokemon)} />)}
+            {POKEMON.map(pokemon => <PokemonCard key={pokemon.id} pokemon={pokemon} selected={browsing?.id === pokemon.id} disabled={taken.some(p => p.id === pokemon.id)} onClick={() => browsePokemon(pokemon)} />)}
           </div>
         </div>
         </div>

@@ -63,8 +63,16 @@ try {
     await page.locator('img[alt="Misty"]').click();
     await page.locator("text=Let's GO!").click();
   });
-  await step('draft: Pikachu, Charizard, Gyarados vs Ditto, Snorlax, Mew, taking turns', async () => {
-    for (const n of ['Pikachu', 'Ditto', 'Charizard', 'Snorlax', 'Gyarados', 'Mew']) await page.locator(`img[alt="${n}"]`).first().click();
+  await step('draft: looking at Mew first, then Pikachu, Charizard, Gyarados vs Ditto, Snorlax, Mew, taking turns', async () => {
+    // Tapping only shows a Pokemon on the stand; its Pick button takes it.
+    await page.locator('img[alt="Mew"]').last().click();
+    await page.locator('text=Strong against').waitFor({ timeout: 2000 });
+    await page.waitForTimeout(700); // the pop onto the stand
+    await shot('pick-browse');
+    for (const n of ['Pikachu', 'Ditto', 'Charizard', 'Snorlax', 'Gyarados', 'Mew']) {
+      await page.locator(`img[alt="${n}"]`).last().click();
+      await page.locator(`button:has-text("Pick ${n}!")`).click();
+    }
     await page.locator('text=Pick where to battle').click();
   });
   await step('the place picker lists the battlefields and starts the battle', async () => {
