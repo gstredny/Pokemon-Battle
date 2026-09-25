@@ -13,7 +13,7 @@ python3 -m http.server 8777 --directory .
 
 Then open http://localhost:8777/dev/arena-harness.html?arena=ocean&t1=ash&t2=misty
 and use the buttons to throw, attack, heal, recall and faint. Query options:
-`arena` (jungle, ocean, mountains, volcano, cave), `t1`/`t2` (trainer ids from `TRAINERS` in
+`arena` (jungle, ocean, mountains, volcano, city, cave), `t1`/`t2` (trainer ids from `TRAINERS` in
 `index.html`), `p1`/`p2` (a sprite file such as `gengar.gif`), `module` (see below).
 
 ## Play the real game from the terminal
@@ -96,9 +96,10 @@ picker because it registers with the same id.
 
 ## Photo places built in Blender
 
-The other places (Ocean first) are built in Blender from CC0 scans: a Poly Haven
-sky photo and its HDR, scanned ground textures, and scanned rocks, plants and
-buildings from Poly Haven and ambientCG. One script builds them, from the repo root:
+Ocean, Mountains, Volcano, City and Crystal Cave are built in Blender from CC0
+scans: a Poly Haven sky photo and its HDR, scanned ground textures, scanned rocks,
+plants and street things from Poly Haven, and lava and building fronts from
+ambientCG. One script builds them, from the repo root:
 
 ```
 blender -b -P dev/blender/build_place.py             # every place
@@ -110,10 +111,22 @@ the full-size assets into `dev/blender/cache/` (git-ignored, hundreds of MB).
 The script writes `arenas/<id>/`: `scene.glb` (the ground and every model, small
 WebP textures, copies instanced), `sky.jpg`, `light.hdr`, the battle circle's
 textures, `manifest.json` and `LICENSES.md`. It prints every file's size and
-fails if a place goes over 7 MB or 120k triangles per frame. In the game,
-`arenas/photo-place.js` loads any of them; `arenas/<id>.js` names the place and
-adds what moves (the Ocean's sea and surf). Objects named `cast_...` in Blender
-cast shadows; keep that to the few big things near the middle.
+fails if a place goes over 7 MB or 120k triangles per frame, or if a texture
+lost its picture. In the game, `arenas/photo-place.js` loads any of them;
+`arenas/<id>.js` names the place and adds what moves (the sea and surf, lava,
+sparks and smoke, the crystals' glow). Objects named `cast_...` in Blender cast
+shadows; keep that to the few big things near the middle. `look.tint` in a place
+file darkens or colours a scanned material by name.
+
+Things that bit, so they don't again:
+- Blender's own Python can't download through the office proxy; downloads use `curl`.
+- The sky HDRs keep the real sun, tens of thousands of times brighter than the
+  sky. `sky.py` notes its direction for the game's sun, then clips it out.
+- Scans import with their vertices split, which stops simplifying early;
+  `props._weld` merges them first. Many Poly Haven files are sets; `part` picks one.
+- Big trees can't be simplified (their needles and leaves are geometry), so
+  `cards.py` photographs them onto cut-out cards, with nothing else in the picture.
+- The exporter re-reads some textures from disk, so shrunk copies are saved as files.
 After a rebuild, list any new file in `assets.json` (`node --test tests/places.test.js` checks).
 
 ## Trainers are Blender models

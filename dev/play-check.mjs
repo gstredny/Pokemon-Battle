@@ -77,7 +77,7 @@ try {
   });
   await step('the place picker lists the battlefields and starts the battle', async () => {
     await page.locator('text=Where do you want to battle?').waitFor({ timeout: 5000 });
-    for (const n of ['Jungle', 'Ocean', 'Mountains', 'Volcano', 'Crystal Cave']) await page.locator(`text=${n}`).first().waitFor({ timeout: 2000 });
+    for (const n of ['Jungle', 'Ocean', 'Mountains', 'Volcano', 'Crystal Cave', 'City']) await page.locator(`text=${n}`).first().waitFor({ timeout: 2000 });
     await shot('place-picker');
     await page.locator('text=Volcano').first().click();
     await page.locator('text=BATTLE!').click();
