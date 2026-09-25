@@ -1481,8 +1481,9 @@ const PickStage = ({ pokemon, title, color, popKey }) => (
   </div>
 );
 
-// What a Pokemon is like, to choose by on the pick screen: its stats as bars,
-// its moves, and the types its own attacks hit hard. The button picks it.
+// What a Pokemon is like, to choose by on the pick screen: its stats as bars
+// and the types its own attacks hit hard (no move list: George found it too
+// much to look at). The button picks it.
 const PokemonInfo = ({ pokemon, color, onPick }) => {
   const strongVs = Object.entries(TYPE_CHART[pokemon.type] || {}).filter(([, x]) => x > 1).map(([t]) => TYPE_DATA[t].icon);
   const stats = [['HP', pokemon.hp, 250, '#4CAF50'], ['Power', pokemon.atk, 150, '#E53935'], ['Defense', pokemon.def, 150, '#2196F3'], ['Speed', pokemon.spd, 150, '#FFC107']];
@@ -1497,10 +1498,7 @@ const PokemonInfo = ({ pokemon, color, onPick }) => {
           </React.Fragment>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', margin: '5px 0 3px' }}>
-        {pokemon.attacks.map(a => <div key={a.name} style={{ background: `${TYPE_DATA[a.type].color}55`, borderRadius: '5px', padding: '2px 4px', fontSize: '10px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{TYPE_DATA[a.type].icon} {a.name}</div>)}
-      </div>
-      {strongVs.length > 0 && <div style={{ fontSize: '11px', fontWeight: 'bold' }}>Strong against {strongVs.join(' ')}</div>}
+      {strongVs.length > 0 && <div style={{ fontSize: '11px', fontWeight: 'bold', marginTop: '5px' }}>Strong against {strongVs.join(' ')}</div>}
       <button onClick={onPick} style={{ width: '100%', marginTop: '5px', padding: '7px', fontSize: '16px', fontWeight: 'bold', color: 'white', background: color, border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', textShadow: '0 1px 2px #000' }}>Pick {pokemon.name}!</button>
     </div>
   );
