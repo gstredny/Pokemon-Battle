@@ -17,12 +17,12 @@ HEAD_R = (0.182, 0.19, 0.205)
 BELT_Z, COLLAR_Z = 0.90, 1.26
 SLEEVE_END = {'none': 9.0, 'short': 1.03, 'long': 0.735}
 WRIST_Z, KNUCKLE_Z = 0.735, 0.62
-HEM_Z = {'long': 0.0, 'shorts': 0.73}
+HEM_Z = {'long': 0.0, 'wide': 0.0, 'shorts': 0.73}
 X, Z = Vector((1, 0, 0)), Vector((0, 0, 1))
 joint = {name: Vector(pos) for name, _, pos in JOINTS}
 
 # (height, half-width, half-depth, forward shift) from crotch to neck.
-TORSO = [(0.73, 0.09, 0.07, 0), (0.79, 0.15, 0.10, 0.005), (0.86, 0.158, 0.103, 0.005),
+TORSO = [(0.75, 0.07, 0.055, 0.01), (0.79, 0.15, 0.10, 0.005), (0.86, 0.158, 0.103, 0.005),
          (BELT_Z, 0.15, 0.098, 0), (0.97, 0.142, 0.093, -0.003), (1.05, 0.152, 0.097, -0.008),
          (1.13, 0.168, 0.102, -0.01), (1.20, 0.185, 0.1, -0.006), (COLLAR_Z, 0.16, 0.088, 0),
          (1.31, 0.085, 0.065, 0)]
@@ -71,19 +71,25 @@ def build(look, smooth, detail):
          'neck', lambda seg, p: 'skin', 8, X)
     _head(smooth)
     _face(look, detail)
-    if 'straps' in look['extras']:
-        _straps(detail)
 
 
 def _torso(look, mb):
+    top = look['top']
+
     def paint(seg, p):
         if p.z < BELT_Z:
             return 'pants'
-        if look['top'] == 'jacket':
+        front = abs(p.x) < 0.07 and p.y < 0      # the two faces down the middle of the chest
+        if top == 'jacket':
             return 'trim' if p.z > COLLAR_Z else 'top'
-        az = abs(math.atan2(p.x, -p.y))          # 0 front, pi back
-        if p.z > COLLAR_Z or (p.z > 1.20 and abs(az - math.pi / 2) < 0.6):
-            return 'skin'                          # tank top: bare neckline and shoulders
+        if top == 'tank':
+            az = abs(math.atan2(p.x, -p.y))      # 0 front, pi back
+            bare = p.z > COLLAR_Z or (p.z > 1.20 and abs(az - math.pi / 2) < 0.6)
+            return 'skin' if bare else 'top'
+        if top in ('vest', 'coat'):              # open front shows the shirt
+            return 'top' if front else top
+        if top == 'suit':
+            return 'shirt' if front and p.z > 1.13 else 'top'
         return 'top'
     rings = [(Vector((0, fy, z)), rx, ry) for z, rx, ry, fy in TORSO]
     tube(mb, rings, 'torso', paint, 12, X)
@@ -97,7 +103,7 @@ def _arm(look, mb, s, side):
         if p.z > sleeve_end:
             return 'sleeve'
         if p.z > WRIST_Z or look['glove'] == 'none':
-            return 'skin'
+            return 'skin' if look['glove'] != 'full' else 'glove'
         return 'skin' if look['glove'] == 'fingerless' and p.z < KNUCKLE_Z else 'glove'
     inward = lambda z: s * 0.035 * max(0.0, min(1.0, (z - 1.16) / 0.11))   # slope into the torso
     tube(mb, [(Vector((x - inward(z), 0, z)), a, b) for z, a, b in ARM], 'arm' + side, paint, 8, X)
@@ -110,34 +116,13 @@ def _arm(look, mb, s, side):
 def _leg(look, mb, s, side):
     x = joint['hip' + side].x
     hem = HEM_Z[look['legs']]
-    tube(mb, [(Vector((x, 0, z)), a, b) for z, a, b in LEG], 'leg' + side,
+
+    def flare(z):                                # wide trousers widen toward the ankle
+        return 1 + 0.9 * max(0.0, min(1.0, (0.75 - z) / 0.65)) if look['legs'] == 'wide' else 1
+    tube(mb, [(Vector((x, 0, z)), a * flare(z), b * flare(z)) for z, a, b in LEG], 'leg' + side,
          lambda seg, p: 'pants' if p.z > hem else 'skin', 8, X)
     tube(mb, [(Vector((x, y, zc)), a, b) for y, a, b, zc in SHOE], 'shoe' + side,
          lambda seg, p: 'sole' if p.z < 0.022 else 'shoe', 8, X)
-
-
-def torso_at(z):
-    """(half-width, half-depth, forward shift) of the torso at height z."""
-    for (z0, *a), (z1, *b) in zip(TORSO, TORSO[1:]):
-        if z0 <= z <= z1:
-            t = (z - z0) / (z1 - z0)
-            return [u + (w - u) * t for u, w in zip(a, b)]
-    raise ValueError(f'height {z} is outside the torso')
-
-
-def _straps(mb):
-    """Suspenders: flat bands from the waistband, up the chest, over each
-    shoulder and down the back, lying just on the torso surface."""
-    for s in (-1, 1):
-        front, back = [], []
-        for z in (0.87, 0.97, 1.05, 1.13, 1.20, COLLAR_Z):
-            x = s * (0.085 + 0.015 * (z - 0.87) / (COLLAR_Z - 0.87))
-            rx, ry, fy = torso_at(z)
-            dy = (ry + 0.008) * math.sqrt(max(0.0, 1 - (x / (rx + 0.008)) ** 2))
-            front.append(Vector((x, fy - dy, z)))
-            back.append(Vector((x, fy + dy, z)))
-        path = front + [Vector((s * 0.1, 0, 1.295))] + back[::-1]
-        tube(mb, [(p, 0.016, 0.004) for p in path], 'torso', lambda seg, p: 'straps', 4, X)
 
 
 def _head(mb):
@@ -155,9 +140,12 @@ def _face(look, mb):
         return head_point(az, el) + n * lift, n
     for s in (-1, 1):
         p, n = on(s * 0.36, -0.03, 0.002)
-        blob(mb, p, n, 0.036, 0.046, 0.010, 'head', 'eyeWhite')
-        blob(mb, p + n * 0.007 + Z * -0.004, n, 0.024, 0.033, 0.008, 'head', 'iris')
-        blob(mb, p + n * 0.014 + Z * 0.01 + X * s * -0.008, n, 0.008, 0.008, 0.004, 'head', 'eyeWhite', 6)
+        if 'squint' in look['extras']:          # Brock: eyes drawn as closed lines
+            blob(mb, p, n, 0.034, 0.005, 0.005, 'head', 'hair', 8, s * -0.08)
+        else:
+            blob(mb, p, n, 0.036, 0.046, 0.010, 'head', 'eyeWhite')
+            blob(mb, p + n * 0.007 + Z * -0.004, n, 0.024, 0.033, 0.008, 'head', 'iris')
+            blob(mb, p + n * 0.014 + Z * 0.01 + X * s * -0.008, n, 0.008, 0.008, 0.004, 'head', 'eyeWhite', 6)
         p, n = on(s * 0.36, 0.22, 0.003)
         blob(mb, p, n, 0.036, 0.007, 0.006, 'head', 'hair', 8, s * 0.12)
         p, n = on(s * 1.5, -0.08)

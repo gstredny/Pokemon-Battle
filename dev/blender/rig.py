@@ -110,6 +110,9 @@ def skin_weights(part, p):
     if part == 'neck':
         t = smoothstep(1.35, 1.43, p.z)
         return {'torso': 1 - t, 'head': t}
+    if part == 'hair':                     # long hair: on the head above the chin, the back below
+        t = smoothstep(1.30, 1.45, p.z)
+        return {'torso': 1 - t, 'head': t}
     if part in ('armL', 'armR'):
         t = smoothstep(ELBOW_Z + 0.04, ELBOW_Z - 0.04, p.z)
         return {'shoulder' + side: 1 - t, 'elbow' + side: t}

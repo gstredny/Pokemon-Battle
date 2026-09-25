@@ -1,9 +1,13 @@
-"""Hair and hats: one builder per hair style in looks.py, all riding the head bone."""
+"""Hair and hats: one builder per hair style in looks.py, plus the headband.
+
+Everything rides the head bone, except long hair below the chin, which blends
+onto the torso so it stays on the back when the head turns.
+"""
 import math
 
 from mathutils import Vector
 
-from body import HEAD_C, head_normal, head_point
+from body import HEAD_C, HEAD_R, head_normal, head_point
 from shapes import blob, cone, tube
 
 X, Z = Vector((1, 0, 0)), Vector((0, 0, 1))
@@ -11,6 +15,8 @@ X, Z = Vector((1, 0, 0)), Vector((0, 0, 1))
 
 def build(look, smooth, detail):
     STYLES[look['hair']](look, smooth, detail)
+    if 'headband' in look['extras']:
+        _headband(detail)
 
 
 def dome(mb, grow, front_el, back_el, paint, cols=16, rows=7):
@@ -82,4 +88,52 @@ def _ponytail(look, smooth, detail):
          'head', 'straps', 10)
 
 
-STYLES = {'cap': _cap, 'ponytail': _ponytail}
+def _spiky(look, smooth, detail):
+    """Brock, Gary, Lance: short hair with spikes over the crown."""
+    dome(smooth, 1.045, 0.38, -0.85, lambda seg, p: 'hair')
+    for el, count, down, length in ((0.55, 9, -0.3, 0.12), (0.95, 5, 0.1, 0.11)):
+        for i in range(count):
+            tuft(smooth, 2 * math.pi * (i + 0.5) / count, el, down, length, 0.05)
+    for az in (-0.35, 0.0, 0.35):
+        tuft(smooth, az, 0.36, -0.9, 0.09, 0.04)
+
+
+def _short(look, smooth, detail):
+    """Koga, Oak, Giovanni: close-cropped hair with a small fringe."""
+    dome(smooth, 1.04, 0.42, -0.85, lambda seg, p: 'hair')
+    for az in (-0.5, -0.25, 0.0, 0.25, 0.5):
+        tuft(smooth, az, 0.45, 0.3, 0.05, 0.035)
+
+
+def _long(look, smooth, detail, end_z=1.12):
+    """Sabrina: straight hair falling down the back, locks framing the face."""
+    dome(smooth, 1.045, 0.4, -0.95, lambda seg, p: 'hair')
+    back = [(1.62, 0.10, 0.185, 0.09), (1.50, 0.165, 0.2, 0.07), (1.38, 0.16, 0.19, 0.05),
+            (1.25, 0.15, 0.18, 0.04), (end_z, 0.14, 0.165, 0.03)]
+    back = [row for row in back if row[0] >= end_z]
+    tube(smooth, [(Vector((0, y, z)), w, t) for z, y, w, t in back], 'hair', lambda seg, p: 'hair', 10, X)
+    for s in (-1, 1):
+        lock = [(head_point(s * 1.15, 0.3, 1.03), 0.05), (head_point(s * 1.3, -0.25, 1.08), 0.045),
+                (Vector((s * 0.2, -0.02, max(end_z + 0.12, 1.3))), 0.03)]
+        tube(smooth, [(p, r, r * 0.7) for p, r in lock], 'hair', lambda seg, p: 'hair', 8, Vector((0, 1, 0)))
+    for az in (-0.45, -0.15, 0.15, 0.45):
+        tuft(smooth, az, 0.45, 1.5, 0.08, 0.035)
+
+
+def _bob(look, smooth, detail):
+    """Erika: a chin-length bob."""
+    _long(look, smooth, detail, end_z=1.40)
+
+
+def _headband(detail):
+    """Erika: a band over the crown from ear to ear."""
+    tilt = 0.35
+    band = []
+    for w in (math.radians(d) for d in range(-80, 81, 16)):
+        d = Vector((math.sin(w), -math.sin(tilt) * math.cos(w), math.cos(tilt) * math.cos(w)))
+        r = 1 / math.sqrt(sum((c / h) ** 2 for c, h in zip(d, HEAD_R)))
+        band.append((HEAD_C + d * r * 1.065, 0.022, 0.008))
+    tube(detail, band, 'head', lambda seg, p: 'headband', 6, Vector((0, math.cos(tilt), math.sin(tilt))))
+
+
+STYLES = {'cap': _cap, 'ponytail': _ponytail, 'spiky': _spiky, 'short': _short, 'long': _long, 'bob': _bob}

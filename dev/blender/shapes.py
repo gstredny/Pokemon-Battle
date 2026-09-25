@@ -18,7 +18,8 @@ class MeshBuilder:
         self.verts, self.faces, self.parts, self.paints = [], [], [], []
 
     def grid(self, rows, part, paint, start_tip, end_tip):
-        """Join equal-length rings `rows` into a closed shell.
+        """Join equal-length rings `rows` into a shell, each end closed by a
+        fan to its tip (a tip of None leaves that end open).
 
         paint(seg, centre) names the colour of a face; seg is the row gap the
         face sits in (the end fans take their neighbouring gap's number).
@@ -32,6 +33,8 @@ class MeshBuilder:
             for k in range(n):
                 self._face((at(i, k), at(i, k + 1), at(i + 1, k + 1), at(i + 1, k)), part, paint, i)
         for tip, i, seg in ((start_tip, 0, 0), (end_tip, len(rows) - 1, len(rows) - 2)):
+            if tip is None:
+                continue
             t = len(self.verts)
             self.verts.append(tip)
             for k in range(n):

@@ -22,6 +22,7 @@ sys.dont_write_bytecode = True   # keep __pycache__ out of dev/blender
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import body  # noqa: E402
 import headwear  # noqa: E402
+import outfit  # noqa: E402
 import rig  # noqa: E402
 from looks import LOOKS  # noqa: E402
 from shapes import MeshBuilder  # noqa: E402
@@ -30,7 +31,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 MAX_TRIANGLES = 15_000
 MAX_BYTES = 600_000
 THROW_SECONDS = 1.2
-PARTS = ['torso', 'neck', 'head', 'armL', 'armR', 'thumbL', 'thumbR', 'legL', 'legR', 'shoeL', 'shoeR']
+PARTS = ['torso', 'neck', 'head', 'hair', 'armL', 'armR', 'thumbL', 'thumbR', 'legL', 'legR', 'shoeL', 'shoeR']
 NODES = [name for name, _, _ in rig.JOINTS] + ['hand']
 SHARED_PAINT = {'eyeWhite': '#ffffff'}
 
@@ -96,6 +97,7 @@ def build(tid):
     smooth, detail = MeshBuilder(), MeshBuilder()
     body.build(look, smooth, detail)
     headwear.build(look, smooth, detail)
+    outfit.build(look, smooth, detail)
     keys = sorted(set(smooth.paints + detail.paints))
     missing = [k for k in keys if k not in palette]
     if missing:
