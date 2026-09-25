@@ -98,8 +98,9 @@
   </script>
   <script src="card-rules.js"></script>
   <script src="kid-monsters.js"></script>
+  <script src="music.js"></script>
   <script type="text/babel">
-    const { useState, useRef, useEffect } = React;
+    const { useState, useEffect } = React;
 
 // True when the phone is turned sideways, so the battle can lay itself out
 // across the screen instead of down it.
@@ -149,6 +150,16 @@ const TRAINERS = [
   { id: 'erika', name: 'Erika', img: 'erika.png', icon: '🌿', color: '#4CAF50' },
   { id: 'prof', name: 'Prof. Oak', img: 'oak.png', icon: '📚', color: '#689F38' },
   { id: 'giovanni', name: 'Giovanni', img: 'giovanni.png', icon: '😈', color: '#424242' },
+];
+
+// Places to battle. The ids and colours match the 3D arenas (battle3d.js and
+// arenas/), so the 3D battlefield can load the place the players pick.
+const SCENES = [
+  { id: 'jungle', name: 'Jungle', icon: '🌴', css: 'linear-gradient(180deg, #0f2d1c 0%, #1f5a34 45%, #2f7a3a 70%, #3d5a1e 100%)' },
+  { id: 'ocean', name: 'Ocean', icon: '🌊', css: 'linear-gradient(180deg, #2f7fd9 0%, #9fd3ff 40%, #1f7fb8 55%, #0b3d63 100%)' },
+  { id: 'mountains', name: 'Mountains', icon: '⛰️', css: 'linear-gradient(180deg, #4a90e2 0%, #cfe3ff 42%, #f4f8ff 50%, #6d7f6a 70%, #3f5a34 100%)' },
+  { id: 'cave', name: 'Crystal Cave', icon: '💎', css: 'radial-gradient(circle at 50% 18%, #fff3c8 0%, #6b6a8a 14%, transparent 30%), linear-gradient(180deg, #0b0d1c 0%, #1c1838 45%, #2b1f4a 60%, #0d3844 80%, #07080f 100%)' },
+  { id: 'volcano', name: 'Volcano', icon: '🌋', css: 'linear-gradient(180deg, #2a0f0c 0%, #7a2a14 38%, #e0622a 55%, #3a1410 72%, #120706 100%)' },
 ];
 
 // Clear loading timeout when app initializes
@@ -451,15 +462,8 @@ const MOVE_ICONS = {
 
 // Enhanced sound system with attack sounds and Pokemon cries
 const useSound = () => {
-  const audioCtx = useRef(null);
-  
-  const getCtx = () => {
-    if (!audioCtx.current) {
-      audioCtx.current = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.current.state === 'suspended') audioCtx.current.resume();
-    return audioCtx.current;
-  };
+  // Shares the music's AudioContext, so one tap unlocks every sound.
+  const getCtx = () => Music.context();
   
   // Create noise for various effects
   const createNoise = (ctx, duration) => {
@@ -475,6 +479,7 @@ const useSound = () => {
   };
 
   const playAttackSound = (type) => {
+    if (Music.muted) return;
     try {
       const ctx = getCtx();
       const now = ctx.currentTime;
@@ -823,6 +828,7 @@ const useSound = () => {
   };
 
   const playPokemonCry = (cryType) => {
+    if (Music.muted) return;
     try {
       const ctx = getCtx();
       const now = ctx.currentTime;
@@ -1117,6 +1123,7 @@ const useSound = () => {
   };
 
   const playSound = (type) => {
+    if (Music.muted) return;
     try {
       const ctx = getCtx();
       const now = ctx.currentTime;
@@ -1128,7 +1135,6 @@ const useSound = () => {
       if (type === 'superEffective') { osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(900, now + 0.2); gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
       else if (type === 'miss') { osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.25); gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25); osc.start(now); osc.stop(now + 0.25); }
       else if (type === 'crit') { [700, 900, 1100].forEach((f, i) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = f; g.gain.setValueAtTime(0.25, now + i * 0.07); g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.07 + 0.1); o.start(now + i * 0.07); o.stop(now + i * 0.07 + 0.1); }); }
-      else if (type === 'victory') { [523, 659, 784, 1047].forEach((f, i) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = f; g.gain.setValueAtTime(0.2, now + i * 0.15); g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.3); o.start(now + i * 0.15); o.stop(now + i * 0.15 + 0.3); }); }
       else if (type === 'faint') { osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.5); gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5); osc.start(now); osc.stop(now + 0.5); }
       else if (type === 'select') { osc.frequency.value = 600; gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05); osc.start(now); osc.stop(now + 0.05); }
       else if (type === 'heal') { [400, 500, 600, 700].forEach((f, i) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = f; g.gain.setValueAtTime(0.15, now + i * 0.08); g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.12); o.start(now + i * 0.08); o.stop(now + i * 0.08 + 0.12); }); }
@@ -1137,10 +1143,7 @@ const useSound = () => {
     } catch (e) {}
   };
 
-  const playBattleMusic = () => {};
-  const stopBattleMusic = () => {};
-
-  return { playSound, playAttackSound, playPokemonCry, playBattleMusic, stopBattleMusic };
+  return { playSound, playAttackSound, playPokemonCry };
 };
 
 // Fullscreen toggle button component
@@ -1307,18 +1310,127 @@ const Confetti = () => {
 };
 
 // Animated background
-const AnimatedBackground = ({ battle }) => (
+const AnimatedBackground = ({ battle, scene }) => (
   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden', zIndex: 0 }}>
     <style>{`
       @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
       @keyframes floatBubble { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 0.5; } 90% { opacity: 0.5; } 100% { transform: translateY(-100px) scale(1); opacity: 0; } }
     `}</style>
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: battle ? 'linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #0f2027)' : 'linear-gradient(-45deg, #1a1a2e, #16213e, #0f3460, #1a1a2e)', backgroundSize: '400% 400%', animation: 'gradientShift 15s ease infinite' }} />
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: scene ? scene.css : battle ? 'linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #0f2027)' : 'linear-gradient(-45deg, #1a1a2e, #16213e, #0f3460, #1a1a2e)', backgroundSize: scene ? 'cover' : '400% 400%', animation: scene ? 'none' : 'gradientShift 15s ease infinite' }} />
     {Array(15).fill(0).map((_, i) => (
       <div key={i} style={{ position: 'absolute', left: `${Math.random() * 100}%`, bottom: '-50px', width: `${20 + Math.random() * 40}px`, height: `${20 + Math.random() * 40}px`, borderRadius: '50%', background: `radial-gradient(circle, ${['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1'][Math.floor(Math.random() * 4)]}22, transparent)`, animation: `floatBubble ${10 + Math.random() * 10}s ease-in-out ${Math.random() * 10}s infinite` }} />
     ))}
   </div>
 );
+
+// Opening screen. Phones only allow sound after a tap, so it waits for one,
+// then plays the intro with music and ends on the title and a PLAY button.
+// Tapping during the intro skips to the end.
+const TitleScreen = ({ onPlay, playSound, playAttackSound }) => {
+  const [stage, setStage] = useState('tap'); // tap → intro → ready (or skipped)
+  useEffect(() => {
+    if (stage !== 'intro') return;
+    const timers = [
+      setTimeout(() => playSound('vs'), 1000),                  // the ball bursts open
+      setTimeout(() => playAttackSound('electric'), 1600),      // the Pokemon fly in
+      setTimeout(() => playAttackSound('rock'), 2500),          // the title slams down
+      setTimeout(() => setStage('ready'), 3800),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, [stage]);
+  const tap = () => {
+    if (stage === 'tap') { Music.context(); setStage('intro'); }
+    else if (stage === 'intro') setStage('skipped');
+  };
+  // Each piece plays its entrance once, then keeps its idle motion. Skipping drops the entrances.
+  const anim = (entrance, idle) => stage === 'skipped' ? idle || 'none' : [entrance, idle].filter(Boolean).join(', ');
+  const sprite = { height: 'min(36vh, 40vw)', imageRendering: 'pixelated', filter: 'drop-shadow(0 6px 10px rgba(0,0,0,0.6))' };
+  const ball = 'min(40vw, 40vh)';
+  return (
+    <div onClick={tap} style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: 'radial-gradient(circle at 50% 45%, #1e3a8a 0%, #0f1b4d 45%, #070b1f 100%)', fontFamily: "'Arial Black', 'Segoe UI', sans-serif", cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <style>{`
+        @keyframes titleBounce { 50% { transform: translateY(-18px); } }
+        @keyframes titleWobble { 15% { transform: rotate(-22deg); } 30% { transform: rotate(18deg); } 45% { transform: rotate(-14deg); } 60% { transform: rotate(10deg); } 75% { transform: rotate(-5deg); } }
+        @keyframes titleBurst { to { transform: scale(4); opacity: 0; } }
+        @keyframes titleFlash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+        @keyframes titleFadeIn { from { opacity: 0; } }
+        @keyframes titleSpin { to { transform: rotate(360deg); } }
+        @keyframes titleFlyLeft { from { transform: translateX(-110vw); } }
+        @keyframes titleFlyRight { from { transform: translateX(110vw); } }
+        @keyframes titleSlam { 0% { transform: scale(3); opacity: 0; } 60% { transform: scale(0.92); opacity: 1; } 100% { transform: scale(1); } }
+        @keyframes titleQuake { 25% { transform: translate(-6px, 4px); } 50% { transform: translate(5px, -4px); } 75% { transform: translate(-3px, 2px); } }
+        @keyframes titleBob { 50% { transform: translateY(-8px); } }
+        @keyframes titleBlink { 50% { opacity: 0.25; } }
+        @keyframes titlePulse { 50% { transform: scale(1.08); } }
+      `}</style>
+
+      {stage === 'tap' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '28px' }}>
+          <div style={{ animation: 'titleBounce 1s ease-in-out infinite' }}><Pokeball size={ball} /></div>
+          <div style={{ color: 'white', fontSize: '22px', letterSpacing: '2px', animation: 'titleBlink 1.2s ease-in-out infinite' }}>👆 TAP TO START</div>
+        </div>
+      ) : (
+        <>
+          {/* Light rays that spin behind everything once the ball opens */}
+          <div style={{ position: 'absolute', left: '50%', top: '50%', width: '220vmax', height: '220vmax', margin: '-110vmax 0 0 -110vmax', background: 'repeating-conic-gradient(rgba(255,215,0,0.13) 0deg 10deg, transparent 10deg 20deg)', animation: anim('titleFadeIn 0.4s ease-out 1.1s both', 'titleSpin 30s linear infinite') }} />
+          {stage !== 'skipped' && (
+            <div style={{ position: 'absolute', pointerEvents: 'none', animation: 'titleWobble 1s ease-in-out, titleBurst 0.3s ease-in 1s forwards' }}><Pokeball size={ball} /></div>
+          )}
+          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2vh', animation: anim('titleQuake 0.3s linear 2.9s') }}>
+            <div style={{ textAlign: 'center', lineHeight: 1, animation: anim('titleSlam 0.45s ease-out 2.45s both') }}>
+              <div style={{ fontSize: 'clamp(40px, min(13vw, 14vh), 96px)', color: '#FFCB05', WebkitTextStroke: '3px #2a4b9b', paintOrder: 'stroke fill', textShadow: '0 5px 0 #2a4b9b, 0 0 24px rgba(255,203,5,0.55)', letterSpacing: '2px' }}>POKEMON</div>
+              <div style={{ fontSize: 'clamp(26px, min(8vw, 9vh), 60px)', color: 'white', WebkitTextStroke: '2px #b3161b', paintOrder: 'stroke fill', textShadow: '0 4px 0 #b3161b', letterSpacing: '6px' }}>BATTLE</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '6vw' }}>
+              <div style={{ animation: anim('titleFlyLeft 0.5s cubic-bezier(.2,.8,.3,1) 1.5s both', 'titleBob 1.4s ease-in-out 2.2s infinite') }}>
+                <img src="charizard.gif" alt="Charizard" style={{ ...sprite, transform: 'scaleX(-1)' }} />
+              </div>
+              <div style={{ animation: anim('titleFlyRight 0.5s cubic-bezier(.2,.8,.3,1) 1.7s both', 'titleBob 1.4s ease-in-out 2.9s infinite') }}>
+                <img src="blastoise.gif" alt="Blastoise" style={sprite} />
+              </div>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); onPlay(); }} style={{
+              padding: '12px 44px', fontSize: '24px', fontWeight: 'bold', fontFamily: 'inherit', letterSpacing: '2px',
+              background: 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)', color: 'white',
+              border: '3px solid #81C784', borderRadius: '14px', cursor: 'pointer', boxShadow: '0 0 20px rgba(76,175,80,0.6)',
+              pointerEvents: stage === 'intro' ? 'none' : 'auto', // mid-intro taps skip instead
+              animation: anim('titleFadeIn 0.4s ease-out 3.2s both', 'titlePulse 1s ease-in-out 3.6s infinite')
+            }}>
+              PLAY ▶
+            </button>
+          </div>
+          {stage !== 'skipped' && (
+            <div style={{ position: 'absolute', inset: 0, background: 'white', pointerEvents: 'none', animation: 'titleFlash 0.6s ease-out 1.05s both' }} />
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+// A Pokeball drawn with CSS, for the opening screen.
+const Pokeball = ({ size }) => (
+  <div style={{ width: size, height: size, borderRadius: '50%', position: 'relative', boxSizing: 'border-box', border: '5px solid #111', background: 'linear-gradient(180deg, #ee1515 0 45%, #111 45% 55%, #f4f4f4 55% 100%)', boxShadow: '0 10px 30px rgba(0,0,0,0.6), inset -10px -10px 0 rgba(0,0,0,0.15)' }}>
+    <div style={{ position: 'absolute', left: '50%', top: '50%', width: '30%', height: '30%', transform: 'translate(-50%, -50%)', borderRadius: '50%', background: '#f4f4f4', border: '5px solid #111', boxSizing: 'border-box' }} />
+  </div>
+);
+
+// Turns all game sound on and off. The choice is remembered on this phone.
+const MuteButton = () => {
+  const [muted, setMuted] = useState(Music.muted);
+  const toggle = () => { Music.setMuted(!muted); setMuted(!muted); };
+  return (
+    <button onClick={toggle} title={muted ? 'Sound on' : 'Sound off'} style={{
+      position: 'fixed', top: '10px', right: '58px', width: '40px', height: '40px',
+      background: 'rgba(0, 0, 0, 0.6)', border: '2px solid rgba(255, 255, 255, 0.3)', borderRadius: '8px',
+      color: 'white', fontSize: '20px', cursor: 'pointer', zIndex: 9999,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation'
+    }}>
+      {muted ? '🔇' : '🔊'}
+    </button>
+  );
+};
 
 // VS Screen
 const VSScreen = ({ team1, team2, trainer1, trainer2, onComplete }) => {
@@ -1480,7 +1592,7 @@ const TeamIndicator = ({ team, hpArray, activeIndex, statuses, onSwitch, canSwit
 );
 
 function PokemonBattle() {
-  const [phase, setPhase] = useState('trainer1');
+  const [phase, setPhase] = useState('title');
   const [trainer1, setTrainer1] = useState(null);
   const [trainer2, setTrainer2] = useState(null);
   const [player1Team, setPlayer1Team] = useState([]);
@@ -1507,8 +1619,9 @@ function PokemonBattle() {
   const [screenFlash, setScreenFlash] = useState(null);
   const [showVS, setShowVS] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [scene, setScene] = useState(null);
   
-  const { playSound, playAttackSound, playPokemonCry, playBattleMusic, stopBattleMusic } = useSound();
+  const { playSound, playAttackSound, playPokemonCry } = useSound();
   const landscape = useIsLandscape();
 
   const addFloatingText = (text, color, large = false, side = null) => {
@@ -1518,13 +1631,12 @@ function PokemonBattle() {
     setTimeout(() => setFloatingTexts(prev => prev.filter(t => t.id !== id)), 1200);
   };
 
-  // Stop music when battle ends
+  // Each part of the game has its own song.
   useEffect(() => {
-    if (phase === 'gameover') stopBattleMusic();
+    Music.play(phase === 'title' ? 'title' : phase === 'battle' ? 'battle' : phase === 'gameover' ? 'victory' : 'menu');
   }, [phase]);
 
   const resetGame = () => {
-    stopBattleMusic();
     setPhase('trainer1'); setTrainer1(null); setTrainer2(null);
     setPlayer1Team([]); setPlayer2Team([]); setPlayer1Active(0); setPlayer2Active(0);
     setPlayer1HP([]); setPlayer2HP([]); setPlayer1Status([null,null,null]); setPlayer2Status([null,null,null]);
@@ -1532,26 +1644,33 @@ function PokemonBattle() {
     setPlayer2Boosts([{atk:0,def:0,spd:0},{atk:0,def:0,spd:0},{atk:0,def:0,spd:0}]);
     setPlayer1SleepTurns([0,0,0]); setPlayer2SleepTurns([0,0,0]);
     setTurn(1); setMessage(''); setWinner(null); setAnimating(false); setFloatingTexts([]);
-    setShowVS(false); setShowConfetti(false);
+    setShowVS(false); setShowConfetti(false); setScene(null);
   };
 
   const goBack = () => {
     playSound("select");
     if (phase === "trainer2") { setPhase("trainer1"); setTrainer2(null); }
-    else if (phase === "select1") { setPhase("trainer2"); setPlayer1Team([]); }
-    else if (phase === "select2") { setPhase("select1"); setPlayer2Team([]); }
+    else if (phase === "draft") {
+      // Undo the last pick; with none left, go back to choosing trainers.
+      if (player1Team.length > player2Team.length) setPlayer1Team(player1Team.slice(0, -1));
+      else if (player2Team.length) setPlayer2Team(player2Team.slice(0, -1));
+      else setPhase("trainer2");
+    }
+    else if (phase === "scene") { setPhase("draft"); setScene(null); }
   };
 
-  const selectPokemon = (pokemon, player) => {
-    playSound('select');
-    const team = player === 1 ? player1Team : player2Team;
-    const setTeam = player === 1 ? setPlayer1Team : setPlayer2Team;
-    if (team.find(p => p.id === pokemon.id)) setTeam(team.filter(p => p.id !== pokemon.id));
-    else if (team.length < 3) setTeam([...team, pokemon]);
+  // Players take turns picking (Player 1, Player 2, Player 1...) until each has three.
+  const draftPlayer = player1Team.length > player2Team.length ? 2 : 1;
+  const draftDone = player2Team.length === 3;
+  const draftPokemon = (pokemon) => {
+    if (draftDone) return;
+    playPokemonCry(pokemon.cry);
+    if (draftPlayer === 1) setPlayer1Team([...player1Team, pokemon]);
+    else setPlayer2Team([...player2Team, pokemon]);
   };
 
   const startBattle = () => { playSound('vs'); setShowVS(true); };
-  const onVSComplete = () => { setShowVS(false); setPlayer1HP(player1Team.map(p => p.hp)); setPlayer2HP(player2Team.map(p => p.hp)); setPhase('battle'); setMessage(`Battle Start! ${trainer1.name}'s turn!`); playBattleMusic(); };
+  const onVSComplete = () => { setShowVS(false); setPlayer1HP(player1Team.map(p => p.hp)); setPlayer2HP(player2Team.map(p => p.hp)); setPhase('battle'); setMessage(`Battle Start! ${trainer1.name}'s turn!`); };
 
   const handleSwitch = (newIndex) => {
     if (animating) return;
@@ -1768,7 +1887,7 @@ function PokemonBattle() {
             const nextAlive = attackerHP.findIndex((hp) => hp > 0);
             const defenderAlive = defenderHP.findIndex((hp) => hp > 0);
             if (nextAlive === -1 && defenderAlive === -1) { setShowConfetti(true); setPhase('gameover'); setWinner(0); return; }
-            else if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(isP1 ? 2 : 1); setPhase('gameover'); return; }
+            else if (nextAlive === -1) { setShowConfetti(true); setWinner(isP1 ? 2 : 1); setPhase('gameover'); return; }
             else { if (isP1) setPlayer1Active(nextAlive); else setPlayer2Active(nextAlive); setMessage(`Go, ${(isP1 ? player1Team : player2Team)[nextAlive].name}!`); }
           }, 800);
         }
@@ -1780,7 +1899,7 @@ function PokemonBattle() {
           setTimeout(() => {
             setFaintingPokemon(null);
             const nextAlive = defenderHP.findIndex((hp) => hp > 0);
-            if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(turn); setPhase('gameover'); return; }
+            if (nextAlive === -1) { setShowConfetti(true); setWinner(turn); setPhase('gameover'); return; }
             else { setDefenderActive(nextAlive); setMessage(`Go, ${defenderTeam[nextAlive].name}!`); }
             finishTurn();
           }, 1000);
@@ -1792,7 +1911,7 @@ function PokemonBattle() {
           setTimeout(() => {
             setFaintingPokemon(null);
             const nextAlive = attackerHP.findIndex((hp) => hp > 0);
-            if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(isP1 ? 2 : 1); setPhase('gameover'); return; }
+            if (nextAlive === -1) { setShowConfetti(true); setWinner(isP1 ? 2 : 1); setPhase('gameover'); return; }
             else { if (isP1) setPlayer1Active(nextAlive); else setPlayer2Active(nextAlive); setMessage(`Go, ${(isP1 ? player1Team : player2Team)[nextAlive].name}!`); }
             finishTurn();
           }, 800);
@@ -1821,7 +1940,7 @@ function PokemonBattle() {
             setTimeout(() => {
               setFaintingPokemon(null);
               const nextAlive = curHP.findIndex((hp) => hp > 0);
-              if (nextAlive === -1) { playSound('victory'); setShowConfetti(true); setWinner(turn); setPhase('gameover'); return; }
+              if (nextAlive === -1) { setShowConfetti(true); setWinner(turn); setPhase('gameover'); return; }
               else { if (isP1) setPlayer2Active(nextAlive); else setPlayer1Active(nextAlive); }
               switchTurn();
             }, 800);
@@ -1838,6 +1957,8 @@ function PokemonBattle() {
   };
 
   if (showVS) return <VSScreen team1={player1Team} team2={player2Team} trainer1={trainer1} trainer2={trainer2} onComplete={onVSComplete} />;
+
+  if (phase === 'title') return <TitleScreen onPlay={() => { playSound('select'); setPhase('trainer1'); }} playSound={playSound} playAttackSound={playAttackSound} />;
 
   // Trainer selection screens
   if (phase === 'trainer1' || phase === 'trainer2') {
@@ -1876,7 +1997,7 @@ function PokemonBattle() {
           </div>
           
           {selectedTrainer && (
-            <button onClick={() => { playSound('select'); setPhase(phase === 'trainer1' ? 'trainer2' : 'select1'); }} style={{ 
+            <button onClick={() => { playSound('select'); setPhase(phase === 'trainer1' ? 'trainer2' : 'draft'); }} style={{ 
               marginTop: '10px', padding: '10px 30px', fontSize: '16px', fontWeight: 'bold',
               background: 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)', color: 'white',
               border: '2px solid #81C784', borderRadius: '10px', cursor: 'pointer'
@@ -1889,37 +2010,81 @@ function PokemonBattle() {
     );
   }
 
-  if (phase === 'select1' || phase === 'select2') {
-    const currentPlayer = phase === 'select1' ? 1 : 2;
-    const currentTrainer = phase === 'select1' ? trainer1 : trainer2;
-    const currentTeam = phase === 'select1' ? player1Team : player2Team;
-    const otherTeam = phase === 'select1' ? [] : player1Team;
+  if (phase === 'draft') {
+    const picker = draftPlayer === 1 ? trainer1 : trainer2;
+    const taken = [...player1Team, ...player2Team];
+    // One trainer's three slots; it glows while it is that trainer's turn.
+    const teamSlots = (trainer, team, active) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: `${trainer.color}33`, padding: '5px 8px', borderRadius: '8px', border: `2px solid ${active ? '#FFD700' : trainer.color}`, boxShadow: active ? `0 0 14px ${trainer.color}` : 'none', transform: active ? 'scale(1.08)' : 'scale(1)', opacity: active || draftDone ? 1 : 0.55, transition: 'all 0.2s' }}>
+        <img src={trainer.img} alt={trainer.name} style={{ width: '26px', height: '26px', imageRendering: 'pixelated' }} />
+        <div style={{ display: 'flex', gap: '3px' }}>
+          {[0, 1, 2].map(i => {
+            const p = team[i];
+            const typeData = p ? TYPE_DATA[p.type] : null;
+            return <div key={i} style={{ width: '28px', height: '28px', borderRadius: '50%', border: `2px dashed ${p ? typeData.color : '#666'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: p ? `${typeData.color}33` : 'transparent', overflow: 'hidden', color: '#888' }}>{p ? <img src={p.img} alt={p.name} style={{ width: '24px', height: '24px' }} /> : '?'}</div>;
+          })}
+        </div>
+      </div>
+    );
     return (
       <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <AnimatedBackground />
-        {phase !== 'trainer1' && <BackButton onClick={goBack} />}
-        <div style={{ position: 'relative', zIndex: 1, padding: '8px', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: `${currentTrainer.color}33`, padding: '5px 10px', borderRadius: '8px', border: `2px solid ${currentTrainer.color}` }}>
-              <span style={{ fontSize: '22px' }}>{currentTrainer.icon}</span>
-              <span style={{ color: currentTrainer.color, fontSize: '14px', fontWeight: 'bold' }}>{currentTrainer.name}</span>
-              <div style={{ display: 'flex', gap: '3px', marginLeft: '6px' }}>
-                {[0, 1, 2].map(i => {
-                  const p = currentTeam[i];
-                  const typeData = p ? TYPE_DATA[p.type] : null;
-                  return <div key={i} style={{ width: '28px', height: '28px', borderRadius: '50%', border: `2px dashed ${p ? typeData.color : '#666'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: p ? `${typeData.color}33` : 'transparent', overflow: 'hidden' }}>{p ? <img src={p.img} alt={p.name} style={{ width: '24px', height: '24px' }} /> : '?'}</div>;
-                })}
-              </div>
-            </div>
-            {currentTeam.length === 3 && (
-              <button onClick={() => { playSound('select'); phase === 'select1' ? setPhase('select2') : startBattle(); }} style={{ padding: '8px 20px', fontSize: '14px', fontWeight: 'bold', background: 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)', color: 'white', border: '2px solid #81C784', borderRadius: '8px', cursor: 'pointer' }}>
-                {phase === 'select1' ? <><img src={trainer2.img} alt={trainer2.name} style={{ width: '16px', height: '16px', verticalAlign: 'middle', imageRendering: 'pixelated' }} /> {trainer2.name}'s Turn →</> : "⚔️ BATTLE!"}
+        <BackButton onClick={goBack} />
+        <div style={{ position: 'relative', zIndex: 1, padding: '8px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 12px', margin: '0 60px 8px' }}>
+            {teamSlots(trainer1, player1Team, !draftDone && draftPlayer === 1)}
+            {teamSlots(trainer2, player2Team, !draftDone && draftPlayer === 2)}
+          </div>
+          <div style={{ textAlign: 'center', marginBottom: '6px', minHeight: '38px' }}>
+            {draftDone ? (
+              <button onClick={() => { playSound('select'); setPhase('scene'); }} style={{ padding: '8px 20px', fontSize: '15px', fontWeight: 'bold', background: 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)', color: 'white', border: '2px solid #81C784', borderRadius: '8px', cursor: 'pointer' }}>
+                Pick where to battle →
               </button>
+            ) : (
+              <div style={{ color: picker.color, fontSize: '18px', fontWeight: 'bold', textShadow: '0 2px 4px #000' }}>{picker.name}, pick a Pokemon!</div>
             )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '3px', margin: '0 auto', gridAutoRows: 'min-content' }}>
-            {POKEMON.map(pokemon => <PokemonCard key={pokemon.id} pokemon={pokemon} selected={currentTeam.find(p => p.id === pokemon.id)} disabled={otherTeam.find(p => p.id === pokemon.id)} onClick={() => selectPokemon(pokemon, currentPlayer)} />)}
+            {POKEMON.map(pokemon => <PokemonCard key={pokemon.id} pokemon={pokemon} disabled={taken.some(p => p.id === pokemon.id)} onClick={() => draftPokemon(pokemon)} />)}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'scene') {
+    return (
+      <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <AnimatedBackground />
+        <BackButton onClick={goBack} />
+        <div style={{ position: 'relative', zIndex: 1, padding: '10px', textAlign: 'center' }}>
+          <h2 style={{ color: '#FFD700', fontSize: '20px', margin: '0 0 10px 0' }}>Where do you want to battle?</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', maxWidth: '720px', margin: '0 auto' }}>
+            {SCENES.map(s => {
+              const isSelected = scene?.id === s.id;
+              return (
+                <div key={s.id} onClick={() => { playSound('select'); setScene(s); }} style={{
+                  height: '84px', borderRadius: '12px', background: s.css, cursor: 'pointer',
+                  border: isSelected ? '3px solid #FFD700' : '2px solid #444',
+                  boxShadow: isSelected ? '0 0 14px #FFD700' : 'none',
+                  transform: isSelected ? 'scale(1.05)' : 'scale(1)', transition: 'all 0.2s',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textShadow: '0 2px 4px #000'
+                }}>
+                  <div style={{ fontSize: '32px' }}>{s.icon}</div>
+                  <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>{s.name}</div>
+                </div>
+              );
+            })}
+          </div>
+          {scene && (
+            <button onClick={startBattle} style={{
+              marginTop: '12px', padding: '10px 30px', fontSize: '16px', fontWeight: 'bold',
+              background: 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)', color: 'white',
+              border: '2px solid #81C784', borderRadius: '10px', cursor: 'pointer'
+            }}>
+              ⚔️ BATTLE!
+            </button>
+          )}
         </div>
       </div>
     );
@@ -1933,7 +2098,7 @@ function PokemonBattle() {
     const defenderType = turn === 1 ? p2Pokemon.type : p1Pokemon.type;
     return (
       <div style={{ height: 'var(--vh, 100vh)', position: 'relative', fontFamily: "'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column' }}>
-        <AnimatedBackground battle />
+        <AnimatedBackground battle scene={scene} />
         {screenFlash && <ScreenFlash color={screenFlash} />}
         {attackAnim && <AttackAnimation type={attackAnim.type} side={attackAnim.side} />}
         {floatingTexts.map(ft => <FloatingText key={ft.id} text={ft.text} color={ft.color} large={ft.large} x={ft.x} />)}
@@ -2059,7 +2224,7 @@ function PokemonBattle() {
       const rootElement = document.getElementById('root');
       if (!rootElement) throw new Error('Root element not found');
       const root = ReactDOM.createRoot(rootElement);
-      root.render(<><FullscreenButton /><PokemonBattle /></>);
+      root.render(<><FullscreenButton /><MuteButton /><PokemonBattle /></>);
     } catch (err) {
       console.error('Failed to initialize app:', err);
       const root = document.getElementById('root');
