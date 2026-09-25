@@ -4,6 +4,8 @@
 // arenas/<id>/scene.glb, with copies drawn as instanced meshes. manifest.json
 // lists the files. Each place file (arenas/<id>.js) passes its name and look
 // here, plus an optional `animate` for what moves (water, lava, glints).
+// look: sun and sky light colours and strengths, fog, and `tint`, colours that
+// darken or warm a scanned material by its Blender name.
 // Loading takes a moment, so build() returns a `ready` promise the engine waits on.
 import * as THREE from '../vendor/three.min.js';
 import { GLTFLoader } from '../vendor/GLTFLoader.min.js';
@@ -93,7 +95,8 @@ async function load(base, scene, sun, look) {
   hdr.mapping = THREE.EquirectangularReflectionMapping;
   scene.environment = hdr;
   scene.environmentIntensity = look.environment ?? 1;
-  sun.position.copy(sunDirection(hdr)).multiplyScalar(30);
+  // Blender notes where the sun was before cutting it out of the HDR.
+  sun.position.copy(manifest.sky.sun ? new THREE.Vector3().fromArray(manifest.sky.sun) : sunDirection(hdr)).multiplyScalar(30);
 
   // The sky sphere is seen from inside, so the photo is flipped to read the right way round.
   bg.colorSpace = THREE.SRGBColorSpace;
@@ -115,6 +118,7 @@ async function load(base, scene, sun, look) {
     node.receiveShadow = true;
     const m = node.material;
     if (m.map) m.map.anisotropy = 4;
+    if (look.tint?.[m.name]) m.color.set(look.tint[m.name]);
   });
   scene.add(gltf.scene);
   return { manifest, root: gltf.scene };

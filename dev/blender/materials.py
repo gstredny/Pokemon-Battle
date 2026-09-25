@@ -3,34 +3,61 @@ normal and roughness maps (plus emission for lava), with every image shrunk to
 a phone-sized texture before export. The glTF exporter turns these node graphs
 into standard glTF materials.
 """
+import os
+
 import bpy
+import numpy as np
+
+
+def small_copy(img, max_px):
+    """`img` at most `max_px` on its longest side. The shrunk copy is saved to a
+    file beside the original, because the glTF exporter re-reads some textures
+    (normal maps, packed roughness) from disk rather than from memory."""
+    if max(img.size) <= max_px:
+        return img
+    path = bpy.path.abspath(img.filepath)
+    root, ext = os.path.splitext(path)
+    small = f'{root}_{max_px}{ext}'
+    if not os.path.exists(small):
+        copy = bpy.data.images.load(path)
+        k = max_px / max(copy.size)
+        w, h = max(1, round(copy.size[0] * k)), max(1, round(copy.size[1] * k))
+        copy.scale(w, h)
+        # Written through a fresh RGBA image: the exporter cannot re-save a
+        # one-channel (greyscale) JPEG, which some roughness maps are.
+        px = np.empty(w * h * 4, dtype=np.float32)
+        copy.pixels.foreach_get(px)
+        fresh = bpy.data.images.new('shrunk', w, h, alpha=ext.lower() == '.png')
+        fresh.pixels.foreach_set(px)
+        fresh.filepath_raw = small
+        fresh.file_format = 'PNG' if ext.lower() == '.png' else 'JPEG'
+        fresh.save(quality=92)
+        bpy.data.images.remove(copy)
+        bpy.data.images.remove(fresh)
+    out = bpy.data.images.load(small, check_existing=True)
+    out.colorspace_settings.name = img.colorspace_settings.name
+    return out
 
 
 def image(path, max_px):
-    """The image at `path`, loaded once and shrunk to at most `max_px` on its longest side."""
-    img = bpy.data.images.load(path, check_existing=True)
-    w, h = img.size
-    if max(w, h) > max_px:
-        k = max_px / max(w, h)
-        img.scale(max(1, round(w * k)), max(1, round(h * k)))
-    return img
+    """The image at `path`, at most `max_px` on its longest side."""
+    return small_copy(bpy.data.images.load(path, check_existing=True), max_px)
 
 
-def pbr(name, maps, max_px=512, emission=0.0, color=None):
+def pbr(name, maps, max_px=512, emission=0.0):
     """A material from a dict of map paths: color, normal, roughness, emission (any may be missing)."""
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     nt = mat.node_tree
     bsdf = nt.nodes['Principled BSDF']
     bsdf.inputs['Metallic'].default_value = 0.0
-    if color:
-        bsdf.inputs['Base Color'].default_value = color
 
     def tex(key, data):
         node = nt.nodes.new('ShaderNodeTexImage')
-        node.image = image(maps[key], max_px)
+        img = bpy.data.images.load(maps[key], check_existing=True)
         if data:
-            node.image.colorspace_settings.name = 'Non-Color'
+            img.colorspace_settings.name = 'Non-Color'
+        node.image = small_copy(img, max_px)
         return node
 
     if 'color' in maps:
@@ -62,9 +89,7 @@ def flat(name, rgba, roughness=0.8, emission=0.0, metallic=0.0):
 
 
 def shrink(mat, max_px):
-    """Shrink every image a material uses (an imported model's own textures)."""
+    """Swap every image a material uses (an imported model's own textures) for a small copy."""
     for node in mat.node_tree.nodes if mat.use_nodes else []:
-        img = getattr(node, 'image', None)
-        if img and img.size[0] and max(img.size) > max_px:
-            k = max_px / max(img.size)
-            img.scale(max(1, round(img.size[0] * k)), max(1, round(img.size[1] * k)))
+        if getattr(node, 'image', None) and node.image.size[0]:
+            node.image = small_copy(node.image, max_px)

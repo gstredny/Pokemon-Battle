@@ -3,7 +3,12 @@
   "scene": "scene.glb",
   "sky": {
     "background": "sky.jpg",
-    "light": "light.hdr"
+    "light": "light.hdr",
+    "sun": [
+      0.7081,
+      0.4794,
+      0.5184
+    ]
   },
   "patch": {
     "color": "patch/color.jpg",
@@ -14,6 +19,6 @@
     "level": -0.45
   },
   "fog": 0.004,
-  "bytes": 6004813,
-  "triangles": 119708
+  "bytes": 5665324,
+  "triangles": 105253
 }

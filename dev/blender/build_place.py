@@ -16,6 +16,7 @@ import json
 import os
 import random
 import shutil
+import struct
 import sys
 import traceback
 
@@ -63,6 +64,20 @@ def frame_triangles():
     return total
 
 
+def broken_textures(path):
+    """Textures in the exported file with no picture (an image the exporter failed to write)."""
+    with open(path, 'rb') as f:
+        data = f.read()
+    gltf = json.loads(data[20:20 + struct.unpack('<I', data[12:16])[0]])
+    images = len(gltf.get('images', []))
+    bad = []
+    for i, t in enumerate(gltf.get('textures', [])):
+        src = t.get('source', t.get('extensions', {}).get('EXT_texture_webp', {}).get('source'))
+        if src is None or src >= images:
+            bad.append(i)
+    return bad
+
+
 def export(path):
     bpy.ops.export_scene.gltf(
         filepath=path, export_format='GLB', export_gpu_instances=True,
@@ -77,7 +92,7 @@ def build(place_id):
     shutil.rmtree(folder, ignore_errors=True)
     os.makedirs(folder)
     credits = [c for c in place.CREDITS]
-    manifest = {'id': place_id, 'scene': 'scene.glb', 'sky': sky.write(place.SKY, folder)}
+    manifest = {'id': place_id, 'scene': 'scene.glb', 'sky': sky.write(place.SKY, folder, photo_px=getattr(place, 'SKY_PX', 4096))}
     manifest['patch'] = patch_textures(place.patch_maps(), folder)
     manifest.update(place.build(random.Random(place_id)))
     export(os.path.join(folder, 'scene.glb'))
@@ -102,6 +117,9 @@ def build(place_id):
         print(f'  {place_id:10} {rel:28} {size / 1e6:6.2f} MB')
     print(f'  {place_id:10} {"TOTAL":28} {manifest["bytes"] / 1e6:6.2f} MB, {manifest["triangles"]} triangles per frame')
     problems = []
+    bad = broken_textures(os.path.join(folder, 'scene.glb'))
+    if bad:
+        problems.append(f'textures with no picture: {bad}')
     if manifest['bytes'] > MAX_BYTES:
         problems.append(f'{manifest["bytes"] / 1e6:.2f} MB is over {MAX_BYTES / 1e6:.0f} MB')
     if manifest['triangles'] > MAX_TRIANGLES:
