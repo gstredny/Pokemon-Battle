@@ -2,12 +2,13 @@
 // the scene. Loaded as an ES module before the game script runs; everything
 // the game needs is published on window.Battle3D.
 //
-// Pipeline note for Blender: trainers and arenas here are built from Three.js
-// primitives so the game stays a no-build, offline app. A model made in
-// Blender (File > Export > glTF .glb, with its animation clips) can replace
-// any of them later through Three.js's GLTFLoader; the joints a replacement
-// rig must expose are listed next to buildTrainer().
+// Pipeline note for Blender: arenas and the fallback trainers here are built
+// from Three.js primitives so the game stays a no-build, offline app. Each
+// trainer then loads its Blender model, models/trainers/<id>.glb (built by
+// dev/blender/build_trainer.py), and swaps it in once it arrives; the joints
+// that model must expose are listed next to buildTrainer().
 import * as THREE from './vendor/three.min.js';
+import { GLTFLoader } from './vendor/GLTFLoader.min.js';
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -791,13 +792,56 @@ class Trainer {
     const built = buildTrainer(look);
     this.root = built.root;
     this.j = built.joints;
+    this.hipsY = this.j.hips.position.y;
     this.throwT = -1;
     this.phase = seed;
     this.cheer = 0;
     this.sad = 0;
+    this.pendingModel = null;
+    this.mixer = null;
+    this.throwClip = null;
   }
-  startThrow() { this.throwT = 0; }
+  // Fetch the Blender model; update() swaps it in between throws. If it
+  // cannot load, the primitive figure simply stays.
+  loadModel(url) {
+    new GLTFLoader().load(url, gltf => { this.pendingModel = gltf; }, undefined,
+      err => console.warn(`Kept the built-in trainer: ${url} did not load (${err.message || err})`));
+  }
+  // The model's joints carry the same names and rest pose as the figure's,
+  // so idle, cheer and slump below drive it unchanged; its Throw clip
+  // replaces the procedural throw.
+  useModel(gltf) {
+    const model = gltf.scene;
+    const j = {};
+    Object.keys(this.j).forEach(name => { j[name] = model.getObjectByName(name); });
+    const missing = Object.keys(j).filter(name => !j[name]);
+    if (missing.length) {
+      console.warn(`Kept the built-in trainer: the model has no ${missing.join(', ')}`);
+      return;
+    }
+    model.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
+    const old = [...this.root.children];
+    this.root.clear();
+    old.forEach(o => o.traverse(m => { m.geometry?.dispose(); m.material?.dispose(); }));
+    this.root.scale.setScalar(1);
+    this.root.add(model);
+    this.j = j;
+    this.hipsY = j.hips.position.y;
+    const clip = THREE.AnimationClip.findByName(gltf.animations, 'Throw');
+    if (clip) {
+      this.mixer = new THREE.AnimationMixer(model);
+      this.throwClip = this.mixer.clipAction(clip).setLoop(THREE.LoopOnce, 1);
+    }
+  }
+  startThrow() {
+    this.throwT = 0;
+    this.throwClip?.reset().play();
+  }
   update(dt, t) {
+    if (this.pendingModel && this.throwT < 0) {
+      this.useModel(this.pendingModel);
+      this.pendingModel = null;
+    }
     const j = this.j;
     const s = t * 1.6 + this.phase;
     // Idle breathing and sway, always on underneath the throw.
@@ -806,7 +850,10 @@ class Trainer {
     j.head.rotation.x = Math.sin(s * 0.7) * 0.04;
     let shoulderR = Math.sin(s) * 0.05, shoulderL = -Math.sin(s) * 0.05, elbowR = 0, torsoY = 0, torsoX = 0;
     let hipL = 0, hipR = 0, kneeL = 0, bob = 0;
-    if (this.throwT >= 0) {
+    if (this.throwT >= 0 && this.throwClip) {
+      this.throwT += dt;
+      if (this.throwT >= this.throwClip.getClip().duration) this.throwT = -1;
+    } else if (this.throwT >= 0) {
       this.throwT += dt;
       const tt = this.throwT;
       shoulderR = keyframes(THROW.shoulderR, tt);
@@ -838,7 +885,8 @@ class Trainer {
     j.hipL.rotation.x = hipL;
     j.hipR.rotation.x = hipR;
     j.kneeL.rotation.x = kneeL;
-    j.hips.position.y = 0.88 + bob;
+    j.hips.position.y = this.hipsY + bob;
+    this.mixer?.update(dt);   // a playing Throw clip overrides the joints it animates
   }
 }
 
@@ -1049,8 +1097,9 @@ class BattleScene {
 
     this.trainers = {};
     [1, 2].forEach(side => {
-      const look = TRAINER_LOOKS[trainers[side - 1]] || TRAINER_LOOKS.ash;
-      const trainer = new Trainer(look, side * 2.3);
+      const id = TRAINER_LOOKS[trainers[side - 1]] ? trainers[side - 1] : 'ash';
+      const trainer = new Trainer(TRAINER_LOOKS[id], side * 2.3);
+      trainer.loadModel(new URL(`models/trainers/${id}.glb`, import.meta.url).href);
       this.scene.add(trainer.root);
       this.trainers[side] = trainer;
     });
