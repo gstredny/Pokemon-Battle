@@ -48,23 +48,33 @@ Try it with `?arena=volcano&module=../arenas/volcano.js` on the harness, or
 game is one import plus `registerArena` in `battle3d.js` and an entry in
 `assets.json`.
 
-## Replacing a trainer with a Blender model
+## Trainers are Blender models
 
-Export from Blender as glTF (`.glb`) with animations. The rig must expose these
-named objects so the throw can drive them: `hips`, `torso`, `head`, `shoulderL`,
-`shoulderR`, `elbowL`, `elbowR`, `hipL`, `hipR`, `kneeL`, `kneeR`, and an empty
-called `hand` on the right hand where the pokeball attaches. A clip named
-`Throw` that releases at 0.46 s replaces the procedural throw.
+Each trainer loads `models/trainers/<id>.glb` and swaps it in for its
+primitive figure once it arrives (the figure stays if the file cannot load).
+All ten are built by one script, from the repo root:
+
+```
+blender -b -P dev/blender/build_trainer.py             # every trainer
+blender -b -P dev/blender/build_trainer.py -- ash misty
+```
+
+`pip install bpy` (Python 3.11) runs it too: `python3.11 dev/blender/build_trainer.py ash`.
+Looks live in `dev/blender/looks.py`; the run fails if a trainer goes over
+15k triangles or 600 KB, or loses a joint or clip.
+
+A trainer model must expose these named objects: `hips`, `torso`, `head`,
+`shoulderL`, `shoulderR`, `elbowL`, `elbowR`, `hipL`, `hipR`, `kneeL`, `kneeR`,
+and an empty called `hand` on the right hand where the pokeball attaches. Its
+joints rest unrotated, so idle, cheer and slump drive it like the figure, and
+its `Throw` clip (release at 0.46 s) replaces the procedural throw.
 
 ## Checking a .glb model
-
-```
-node dev/export-trainer.mjs ash     # writes models/trainers/ash.glb from the built-in figure
-```
 
 Open http://localhost:8777/dev/model-viewer.html?model=../models/trainers/ash.glb&clip=Throw
 to see any `.glb` lit like an arena. It prints the size, triangle count, clip
 names and which of the 12 trainer joints it found, and shows an error if the
-file or the clip is missing. `models/trainers/ash.glb` and `misty.glb` are the
-built-in figures exported this way: import one into Blender as a starting
-point, keep the joint names, add a `Throw` clip, export, and check it here.
+file or the clip is missing.
+
+`node dev/export-trainer.mjs ash` exports the primitive figure as a `.glb`;
+it writes to `models/trainers/`, so it overwrites that trainer's Blender model.
