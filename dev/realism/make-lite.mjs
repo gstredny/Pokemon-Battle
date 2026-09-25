@@ -1,6 +1,6 @@
-// Builds the slim assets for jungle-lite.js from the full photo assets that
-// fetch-assets.py downloaded. Output goes to dev/realism/assets/local/lite/
-// (git-ignored), with a manifest listing every file and its size.
+// Builds arenas/jungle-photo/, the slim assets of the game's Jungle arena
+// (arenas/jungle-photo.js), from the full photo assets that fetch-assets.py
+// downloaded, with a manifest listing every file and the total size.
 //
 //   python3 dev/realism/fetch-assets.py                  # once, the full assets
 //   python3 -m http.server 8777 --directory .            # from the repo root
@@ -19,8 +19,8 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, copyFileSyn
 import { dirname, join } from 'path';
 
 const ROOT = 'dev/realism/assets/local';
-const OUT = join(ROOT, 'lite');
-const TMP = join(OUT, 'src');
+const OUT = 'arenas/jungle-photo';
+const TMP = join(ROOT, 'lite-src');
 const ORIGIN = 'http://127.0.0.1:8777';
 
 // gltfpack settings per model: triangle ratio, and the error allowance where the default 1% stops too early.
@@ -40,6 +40,8 @@ if (!full.sky || !full.textures?.ground || !full.textures?.arena) fail('the sky 
 try { await fetch(ORIGIN + '/vendor/THREE-LICENSE').then(r => { if (!r.ok) throw new Error(r.status); }); } catch (e) { fail(`no server at ${ORIGIN} (${e.message}). Start python3 -m http.server 8777 --directory .`); }
 
 rmSync(OUT, { recursive: true, force: true });
+rmSync(TMP, { recursive: true, force: true });
+mkdirSync(OUT, { recursive: true });
 mkdirSync(TMP, { recursive: true });
 const chrome = process.env.CHROME || (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const browser = await chromium.launch({ executablePath: chrome, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'] });
@@ -79,31 +81,33 @@ for (const [k, s] of Object.entries(SIMPLIFY)) {
   try {
     const log = execFileSync(gltfpack[0], [...gltfpack.slice(1), '-i', join(TMP, file), '-o', out, '-si', String(s.ratio), '-se', String(s.error), '-noq', '-v'], { encoding: 'utf8' });
     const tris = (log.match(/^output: \d+ mesh primitives \((\d+) triangles/m) || [])[1];
-    manifest.models[k] = { id: full.models[k].id, file: `lite/${k}.glb`, triangles: Number(tris) };
+    manifest.models[k] = { id: full.models[k].id, file: `${k}.glb`, triangles: Number(tris) };
   } catch (e) { fail(`gltfpack failed on ${k}: ${e.stderr || e.message}`); }
 }
 
-// Ground textures and the sky photo, shrunk. The HDR light is small already and is used as it is.
+// Ground textures and the sky photo, shrunk. The HDR light is small already and is copied as it is.
 for (const set of ['ground', 'arena']) {
   manifest.textures[set] = { id: full.textures[set].id };
   for (const kind of ['color', 'normal', 'roughness']) {
-    const dest = `lite/textures/${set}/${kind}.jpg`;
-    await shrink(`${ROOT}/${full.textures[set][kind]}`, join(ROOT, dest), 1024);
+    const dest = `textures/${set}/${kind}.jpg`;
+    await shrink(`${ROOT}/${full.textures[set][kind]}`, join(OUT, dest), 1024);
     manifest.textures[set][kind] = dest;
   }
 }
 await shrink(`${ROOT}/${full.sky.background}`, join(OUT, 'sky-2k.jpg'), 2048);
-manifest.sky = { id: full.sky.id, light: full.sky.light, background: 'lite/sky-2k.jpg' };
+copyFileSync(join(ROOT, full.sky.light), join(OUT, 'sky-light.hdr'));
+manifest.sky = { id: full.sky.id, light: 'sky-light.hdr', background: 'sky-2k.jpg' };
+copyFileSync(join(ROOT, 'LICENSES.md'), join(OUT, 'LICENSES.md'));
 
 // Tree cutouts: the full tree lit by the same sky photo and sun as the arena,
 // seen from the battle camera's side, on a transparent background.
 const cutouts = await page.evaluate(async ([base, treeFile, light, turns]) => {
   const THREE = await import('/vendor/three.min.js');
   const { GLTFLoader } = await import('/vendor/GLTFLoader.min.js');
-  const { HDRLoader } = await import('/dev/realism/vendor/HDRLoader.js');
+  const { HDRLoader } = await import('/vendor/HDRLoader.js');
   const [gltf, hdr] = await Promise.all([new GLTFLoader().loadAsync(base + treeFile), new HDRLoader().setDataType(THREE.FloatType).loadAsync(base + light)]);
   hdr.mapping = THREE.EquirectangularReflectionMapping;
-  // Same sun as jungle-pbr.js and jungle-lite.js: the brightest spot in the upper half of the photo.
+  // Same sun as arenas/jungle-photo.js: the brightest spot in the upper half of the photo.
   const { data, width, height } = hdr.image;
   let best = -1, bx = 0, by = 0;
   for (let y = 0; y < height / 2; y++) for (let x = 0; x < width; x++) {
@@ -143,18 +147,18 @@ const cutouts = await page.evaluate(async ([base, treeFile, light, turns]) => {
   return out;
 }, [`${ORIGIN}/${ROOT}/`, full.models.tree.file, full.sky.light, TREE_TURNS]);
 cutouts.forEach(c => {
-  const file = `lite/tree-${c.turn}.png`;
-  writeFileSync(join(ROOT, file), Buffer.from(c.png, 'base64'));
+  const file = `tree-${c.turn}.png`;
+  writeFileSync(join(OUT, file), Buffer.from(c.png, 'base64'));
   manifest.trees.push({ file, width: +c.width.toFixed(3), height: +c.height.toFixed(3), sink: +c.sink.toFixed(3) });
 });
 await browser.close();
 rmSync(TMP, { recursive: true, force: true });
 
-// Sizes of everything jungle-lite.js downloads.
+// Sizes of everything the arena downloads.
 const files = [...Object.values(manifest.models).map(m => m.file), ...manifest.trees.map(t => t.file),
   ...Object.values(manifest.textures).flatMap(t => ['color', 'normal', 'roughness'].map(k => t[k])), manifest.sky.light, manifest.sky.background];
-manifest.bytes = files.reduce((n, f) => n + statSync(join(ROOT, f)).size, 0);
+manifest.bytes = files.reduce((n, f) => n + statSync(join(OUT, f)).size, 0);
 writeFileSync(join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2));
-Object.entries(manifest.models).forEach(([k, m]) => console.log(`${k.padEnd(8)} ${String(m.triangles).padStart(6)} triangles  ${(statSync(join(ROOT, m.file)).size / 1e6).toFixed(2)} MB`));
-console.log(`trees    ${manifest.trees.length} cutouts  ${(manifest.trees.reduce((n, t) => n + statSync(join(ROOT, t.file)).size, 0) / 1e6).toFixed(2)} MB`);
+Object.entries(manifest.models).forEach(([k, m]) => console.log(`${k.padEnd(8)} ${String(m.triangles).padStart(6)} triangles  ${(statSync(join(OUT, m.file)).size / 1e6).toFixed(2)} MB`));
+console.log(`trees    ${manifest.trees.length} cutouts  ${(manifest.trees.reduce((n, t) => n + statSync(join(OUT, t.file)).size, 0) / 1e6).toFixed(2)} MB`);
 console.log(`total download ${(manifest.bytes / 1e6).toFixed(1)} MB in ${files.length} files (${readdirSync(OUT).length} entries in ${OUT})`);

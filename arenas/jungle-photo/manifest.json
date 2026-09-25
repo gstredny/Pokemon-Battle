@@ -1,0 +1,64 @@
+{
+  "models": {
+    "rocks": {
+      "id": "rock_moss_set_02",
+      "file": "rocks.glb",
+      "triangles": 1728
+    },
+    "boulder": {
+      "id": "boulder_01",
+      "file": "boulder.glb",
+      "triangles": 2762
+    },
+    "shrub": {
+      "id": "shrub_04",
+      "file": "shrub.glb",
+      "triangles": 1639
+    },
+    "fern": {
+      "id": "fern_02",
+      "file": "fern.glb",
+      "triangles": 810
+    }
+  },
+  "trees": [
+    {
+      "file": "tree-0.png",
+      "width": 4.376,
+      "height": 3.543,
+      "sink": 0.068
+    },
+    {
+      "file": "tree-120.png",
+      "width": 5.857,
+      "height": 3.543,
+      "sink": 0.068
+    },
+    {
+      "file": "tree-240.png",
+      "width": 5.857,
+      "height": 3.543,
+      "sink": 0.068
+    }
+  ],
+  "textures": {
+    "ground": {
+      "id": "forest_leaves_02",
+      "color": "textures/ground/color.jpg",
+      "normal": "textures/ground/normal.jpg",
+      "roughness": "textures/ground/roughness.jpg"
+    },
+    "arena": {
+      "id": "brown_mud_leaves_01",
+      "color": "textures/arena/color.jpg",
+      "normal": "textures/arena/normal.jpg",
+      "roughness": "textures/arena/roughness.jpg"
+    }
+  },
+  "sky": {
+    "id": "rainforest_trail",
+    "light": "sky-light.hdr",
+    "background": "sky-2k.jpg"
+  },
+  "bytes": 6797167
+}

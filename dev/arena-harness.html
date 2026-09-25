@@ -28,6 +28,7 @@
     const mod = q.get('module');
     if (mod) window.Battle3D.registerArena((await import(mod)).default);
     window.scene = window.Battle3D.create({ container: document.getElementById('stage'), arena: q.get('arena') || 'jungle', trainers: [q.get('t1') || 'ash', q.get('t2') || 'misty'] });
+    await window.scene.ready;   // photo arenas load for a moment first
     window.started = true;
   }
   const boot = () => start().catch(err => { window.errors.push(err.message); document.body.insertAdjacentHTML('beforeend', '<pre style="color:#f66;position:absolute;top:60px;left:8px;z-index:9">' + err.message + '</pre>'); });

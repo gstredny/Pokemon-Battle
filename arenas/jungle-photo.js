@@ -1,13 +1,15 @@
-// Realism test, variant "lite": the photo jungle (jungle-pbr.js) slimmed to
-// fit a phone. Same sky photo, scanned ground and scanned rocks and plants, but
-// the models are simplified, the textures shrunk, and the distant trees are
-// cutout cards of the full-detail tree. Build the assets with
-// `node dev/realism/make-lite.mjs`; without them this arena fails loudly.
-import * as THREE from '../../vendor/three.min.js';
-import { GLTFLoader } from '../../vendor/GLTFLoader.min.js';
-import { HDRLoader } from './vendor/HDRLoader.js';
+// The Jungle arena, built from real photos: a Poly Haven sky photo is the
+// background and lights the scene, the ground uses photo-scanned textures, and
+// the rocks and plants are scanned models, all CC0 (see jungle-photo/LICENSES.md).
+// It is the photo jungle from dev/realism slimmed to fit a phone: simplified
+// models, shrunk textures, and the distant trees as cutout cards of the
+// full-detail tree. `node dev/realism/make-lite.mjs` rebuilds jungle-photo/.
+// Loading takes a moment, so build() returns a `ready` promise the engine waits on.
+import * as THREE from '../vendor/three.min.js';
+import { GLTFLoader } from '../vendor/GLTFLoader.min.js';
+import { HDRLoader } from '../vendor/HDRLoader.js';
 
-const BASE = new URL('./assets/local/', import.meta.url).href;
+const BASE = new URL('./jungle-photo/', import.meta.url).href;
 const FLAT_RADIUS = 7;
 const SHADOW_REACH = 16;                          // half-size of the sun's shadow box
 const CAMERA = new THREE.Vector3(0.3, 4.5, 10);   // roughly where both camera poses sit; the tree cards face it
@@ -23,10 +25,10 @@ const SCATTER = {
 const TREES = { count: 42, near: 14, far: 50, scale: [1.0, 1.8] };
 
 function missing(what) {
-  return new Error(`MISSING ASSETS: ${what}. Run python3 dev/realism/fetch-assets.py, then node dev/realism/make-lite.mjs`);
+  return new Error(`Jungle photo assets missing: ${what}`);
 }
 
-// The ground, sun and fog below match jungle-pbr.js so the two compare like for like.
+// The ground, sun and fog below match dev/realism/jungle-pbr.js, the full-size original.
 function noise2(x, z) {
   const h = (i, j) => { const s = Math.sin(i * 127.1 + j * 311.7) * 43758.5453; return s - Math.floor(s); };
   const xi = Math.floor(x), zi = Math.floor(z), xf = x - xi, zf = z - zi;
@@ -164,9 +166,9 @@ function treeCards(rng, cutouts, textures) {
   return group;
 }
 
-async function load(scene, rng, sun, stats) {
-  const res = await fetch(BASE + 'lite/manifest.json');
-  if (!res.ok) throw missing('dev/realism/assets/local/lite/manifest.json');
+async function load(scene, rng, sun) {
+  const res = await fetch(BASE + 'manifest.json');
+  if (!res.ok) throw missing('arenas/jungle-photo/manifest.json');
   const manifest = await res.json();
   Object.keys(SCATTER).forEach(k => { if (!manifest.models?.[k]) throw missing(`the slim ${k} model`); });
   if (!manifest.trees?.length) throw missing('the tree cutouts');
@@ -195,7 +197,7 @@ async function load(scene, rng, sun, stats) {
   sky.renderOrder = -1;
   sky.frustumCulled = false;
   scene.add(sky);
-  scene.fog = new THREE.FogExp2(horizonColor(bg.image), 0.016);
+  scene.fog = new THREE.FogExp2(horizonColor(bg.image), 0.011);
 
   const groundGeo = new THREE.PlaneGeometry(220, 220, 90, 90);
   groundGeo.rotateX(-Math.PI / 2);
@@ -218,17 +220,12 @@ async function load(scene, rng, sun, stats) {
 
   Object.keys(SCATTER).forEach((k, i) => scene.add(scatterModel(models[i], placements(rng, SCATTER[k]), SCATTER[k].shadow)));
   scene.add(treeCards(rng, manifest.trees, treeTex));
-
-  stats.models = Object.fromEntries(Object.keys(SCATTER).map(k => [k, { trianglesEach: manifest.models[k].triangles, copies: SCATTER[k].count }]));
-  stats.treeCards = TREES.count;
-  stats.downloadMB = +(manifest.bytes / 1e6).toFixed(1);
 }
 
 export default {
-  id: 'jungle-lite', name: 'Jungle (photo, slim)', icon: '🌿', blurb: 'Realism test: the photo jungle slimmed for phones',
-  css: 'linear-gradient(180deg, #33472f, #6d7f4a)',
+  id: 'jungle', name: 'Jungle', icon: '🌴', blurb: 'A real jungle clearing, from photos',
+  css: 'linear-gradient(180deg, #3d5a3a 0%, #7d8f5a 45%, #8a7a52 70%, #4f4230 100%)',
   build(scene, rng) {
-    const stats = (window.realismStats = { variant: 'lite' });
     scene.add(new THREE.HemisphereLight('#dfe8d0', '#2b2a1c', 0.25));
     const sun = new THREE.DirectionalLight('#fff1dc', 1.6);
     sun.position.set(-8, 18, 6);
@@ -238,10 +235,6 @@ export default {
     sun.shadow.bias = -0.0005;
     sun.shadow.normalBias = 0.03;
     scene.add(sun);
-    window.realismReady = load(scene, rng, sun, stats).catch(err => {
-      document.body.insertAdjacentHTML('beforeend', `<pre style="color:#f66;position:absolute;top:90px;left:8px;right:8px;white-space:pre-wrap;z-index:9">${err.message}</pre>`);
-      throw err;
-    });
-    return { update() {} };
+    return { update() {}, ready: load(scene, rng, sun) };
   },
 };

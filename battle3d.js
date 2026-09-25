@@ -11,6 +11,7 @@ import * as THREE from './vendor/three.min.js';
 import { GLTFLoader } from './vendor/GLTFLoader.min.js';
 import volcano from './arenas/volcano.js';
 import cave from './arenas/cave.js';
+import junglePhoto from './arenas/jungle-photo.js';
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -554,6 +555,7 @@ function registerArena(def) {
 }
 registerArena(volcano);
 registerArena(cave);
+registerArena(junglePhoto);   // the photo jungle takes the built-in jungle's place in the picker
 const listArenas = () => Object.values(ARENAS).map(({ id, name, icon, blurb, css }) => ({ id, name, icon, blurb, css }));
 
 // ---------------------------------------------------------------------------
@@ -1166,6 +1168,24 @@ class BattleScene {
     this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
     const rng = mulberry32(seed * 7919 + arena.length);
     this.arena = ARENAS[arena].build(this.scene, rng);
+    // Photo arenas load for a moment and hand back a `ready` promise: keep the
+    // battlefield hidden, and hold the intro and every queued action, until it
+    // resolves. If it fails the game is told, as for any other 3D failure, and
+    // the held actions never run.
+    if (this.arena.ready) Object.assign(canvas.style, { opacity: '0', transition: 'opacity 0.4s' });
+    this.ready = Promise.resolve(this.arena.ready).then(() => {
+      if (this.disposed) return;
+      canvas.style.opacity = '1';
+      this.timeline.tween(2.4, k => { this.introK = k; }, easeOutCubic);
+    }, err => {
+      this.failed = true;
+      cancelAnimationFrame(this.raf);
+      console.error('Battle3D: the arena did not load:', err);
+      if (this.onError && !this.disposed) this.onError(err);
+      throw err;
+    });
+    const gate = this.ready.catch(() => new Promise(() => {}));
+    this.queues = { 1: gate, 2: gate };
 
     this.trainers = {};
     [1, 2].forEach(side => {
@@ -1193,7 +1213,6 @@ class BattleScene {
     this.resizeObserver?.observe(container);
     this.resize(true);
 
-    this.timeline.tween(2.4, k => { this.introK = k; }, easeOutCubic);
     this.frame = this.frame.bind(this);
     this.raf = requestAnimationFrame(this.frame);
   }

@@ -35,7 +35,9 @@ and calls into it as the battle state changes: `sendOut(side, pokemon)` when a
 Pokemon becomes active, `recall`, `attack(side, type, kind)`, `hit`, `faint`,
 `swap` (Ditto's Transform) and `anchor(side)` to float damage numbers over a
 Pokemon. Side 1 is the player near the camera. Pokemon are sized from
-`DEX_HEIGHT` (real heights, kept between 0.5 m and 3.5 m tall and 3 m wide).
+`DEX_HEIGHT` (real heights, kept between 0.5 m and 3.5 m), drawn `SIZE_SCALE`
+(2.2) times bigger so they read on a phone; above 3.4 m the growth eases off
+and wide ones are held to 3.6 m, so the biggest still fit on screen.
 
 ## Screenshots from the terminal
 
@@ -68,6 +70,29 @@ Try it with `?arena=volcano&module=../arenas/volcano.js` on the harness, or
 `node dev/shoot.mjs volcano ash misty ../arenas/volcano.js`. Wiring it into the
 game is one import plus `registerArena` in `battle3d.js` and an entry in
 `assets.json`.
+
+An arena that loads files (photos, models) returns `{ update, ready }`, where
+`ready` is a promise. The engine keeps the battlefield hidden and holds the
+throws until it resolves; if it rejects, the game falls back to the 2D battle.
+List every file it loads in `assets.json` so it works offline.
+
+## The photo Jungle
+
+The Jungle is `arenas/jungle-photo.js`: a Poly Haven sky photo, scanned ground
+textures and scanned rocks and plants (all CC0, see
+`arenas/jungle-photo/LICENSES.md`), slimmed to fit a phone. Its files in
+`arenas/jungle-photo/` are built from the full-size assets of the realism test
+(`dev/realism/`):
+
+```
+python3 dev/realism/fetch-assets.py     # the full-size photo assets, git-ignored
+node dev/realism/make-lite.mjs          # with the server running: rebuilds arenas/jungle-photo/
+```
+
+It simplifies the rocks and plants with gltfpack, shrinks the textures, and
+renders the full-detail tree into three cutout images for the distant trees.
+The low-poly jungle is still in `battle3d.js`; the photo one replaces it in the
+picker because it registers with the same id.
 
 ## Trainers are Blender models
 
