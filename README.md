@@ -17,23 +17,61 @@ python3 -m http.server 8777 --directory .
 
 Then open http://localhost:8777/index.html
 
+## Adding a kid's monster
+
+1. Print the card: open `monster-card.html` (or
+   https://gstredny.github.io/Pokemon-Battle/monster-card.html) and press Print.
+2. The kid draws a monster in the big box. Ask "What's its name?" and "What can
+   it do?" and write down what they say.
+3. Photograph the card, flat and in good light. AirDrop it to the Mac and save
+   it in `monsters/cards/`. That folder stays out of git.
+4. Ask Claude: "add the monster in monsters/cards/<file>, made by <nickname>".
+   The nickname shows on the public website. Claude picks the type, stars and
+   powers to match what the kid said, cuts out the drawing, tests it, and pushes.
+
+Tools, set up once:
+
+```
+python3 -m venv .venv
+.venv/bin/pip install pillow
+```
+
+Cut out a drawing:
+
+```
+.venv/bin/python tools/cutout.py grid monsters/cards/card.jpg /tmp/grid.jpg
+.venv/bin/python tools/cutout.py cut monsters/cards/card.jpg LEFT TOP RIGHT BOTTOM monsters/<slug>.png
+```
+
+Tests:
+
+```
+node --test tests/*.test.js
+.venv/bin/python -m unittest discover -s tests -p 'test_*.py'
+```
+
 ## How it is built
 
-Everything lives in `index.html`: the game data, the React components and the
-styles. There is no build step and nothing to install. Edit `index.html`, save,
-reload.
+The game lives in `index.html`: the game data, the React components and the
+styles. Kids' monsters live in `kid-monsters.js`. There is no build step and
+nothing to install. Edit, save, reload.
 
 React and the JSX compiler load from a CDN. `sw.js` caches the whole game on
 first visit so later launches are instant and work offline.
 
 | File | What it is |
 |---|---|
-| `index.html` | The entire game. The only file to edit. |
+| `index.html` | The game: data, components and styles. |
 | `sw.js` | Caches the game for offline play. |
 | `assets.json` | The list of files `sw.js` caches. |
 | `manifest.json` | Makes it installable as a phone app. |
 | `*.gif` | Pokemon sprites. |
 | `*.png` | Trainer sprites and app icons. |
+| `monster-card.html` | The printable card kids draw on. |
+| `kid-monsters.js` | Every kid's monster. |
+| `card-rules.js` | Turns a kid's monster into stats and moves. |
+| `monsters/` | Cut-out drawings of kid monsters. |
+| `tools/cutout.py` | Cuts a drawing out of a card photo. |
 
 ## After you change anything
 
