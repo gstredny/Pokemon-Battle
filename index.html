@@ -1822,7 +1822,7 @@ function PokemonBattle() {
       }
     });
   }, [scene3d, p1Key, p2Key]);
-  useEffect(() => { if (scene3d && attackAnim) scene3d.attack(attackAnim.side === 'left' ? 1 : 2, attackAnim.type, attackAnim.kind); }, [scene3d, attackAnim]);
+  useEffect(() => { if (scene3d && attackAnim) scene3d.attack(attackAnim.side === 'left' ? 1 : 2, attackAnim.type, attackAnim.kind, attackAnim.result); }, [scene3d, attackAnim]);
   useEffect(() => { if (scene3d && flashTarget) scene3d.hit(flashTarget); }, [scene3d, flashTarget]);
   useEffect(() => { if (scene3d && faintingPokemon) scene3d.faint(faintingPokemon); }, [scene3d, faintingPokemon]);
 
@@ -1942,7 +1942,14 @@ function PokemonBattle() {
     // Play attack sound based on type!
     playAttackSound(attack.type);
     
-    setAttackAnim({ type: attack.type, side: attackerSide, kind: attack.heal || attack.fullHeal ? 'heal' : attack.boostAtk || attack.boostDef || attack.boostSpd || attack.transform ? 'boost' : 'attack' });
+    // Roll for a miss or a dodge now, so the 3D attack already knows how it ends.
+    // Speed lets the defender slip away, but priority moves are too quick to dodge.
+    const support = attack.heal || attack.fullHeal || attack.boostAtk || attack.boostDef || attack.boostSpd || attack.transform;
+    const missed = !support && Math.random() * 100 > attack.accuracy;
+    const atkSpd = attacker.spd * (1 + attackerBoosts.spd * 0.5);
+    const defSpd = defender.spd * (1 + defenderBoosts.spd * 0.5);
+    const dodged = !support && !missed && !attack.priority && Math.random() * 100 < getDodgeChance(defSpd, atkSpd);
+    setAttackAnim({ type: attack.type, side: attackerSide, kind: attack.heal || attack.fullHeal ? 'heal' : support ? 'boost' : 'attack', result: missed ? 'miss' : dodged ? 'dodge' : 'hit' });
     setTimeout(() => setAttackAnim(null), 600);
 
     setTimeout(() => {
@@ -1994,17 +2001,15 @@ function PokemonBattle() {
       }
 
       // Accuracy check
-      if (Math.random() * 100 > attack.accuracy) {
+      if (missed) {
         playSound('miss');
         addFloatingText('MISS!', '#888', true, defenderSide);
         setTimeout(() => { setTurn(turn === 1 ? 2 : 1); setMessage(`${turn === 1 ? trainer2.name : trainer1.name}'s turn!`); setAnimating(false); }, 1200);
         return;
       }
 
-      // Dodge check: speed lets the defender slip away, but priority moves are too quick to dodge
-      const atkSpd = attacker.spd * (1 + attackerBoosts.spd * 0.5);
-      const defSpd = defender.spd * (1 + defenderBoosts.spd * 0.5);
-      if (!attack.priority && Math.random() * 100 < getDodgeChance(defSpd, atkSpd)) {
+      // Dodge check (rolled above)
+      if (dodged) {
         playSound('miss');
         setMessage(`${defender.name} dodged!`);
         addFloatingText('💨 DODGED!', '#9AA9FE', true, defenderSide);

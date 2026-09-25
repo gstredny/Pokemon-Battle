@@ -45,7 +45,8 @@ const step = async (name, fn) => { stepName = name; await fn(); console.log('  o
 const shot = name => page.screenshot({ path: `${OUT}/play-${no3d ? '2d-' : ''}${name}.png` });
 // The move buttons: every button in the battle except fullscreen (⤢), mute (🔊/🔇) and the winner screen's PLAY AGAIN.
 const moveButtons = () => page.locator('button').filter({ hasText: /\S/ }).filter({ hasNotText: '⤢' }).filter({ hasNotText: /🔊|🔇/ }).filter({ hasNotText: 'PLAY AGAIN' });
-const visibleSprites = () => page.evaluate(() => [...document.querySelectorAll('img[alt=""]')].filter(i => i.style.display === 'block').length);
+// What each side of the 3D battle shows: 'sprite', 'model' (a kid monster's 3D model) or '' (none).
+const shown = () => page.evaluate(() => { const d = document.querySelector('[data-side1], [data-side2]')?.dataset || {}; return [d.side1 || '', d.side2 || '']; });
 const gameOver = () => page.locator('text=/WINS!|DRAW!/').count().then(n => n > 0);
 
 try {
@@ -88,7 +89,7 @@ try {
     if (no3d && canvases) throw new Error('a 3D canvas appeared although 3D is unavailable');
     if (!no3d) {
       if (canvases !== 1) throw new Error(`expected one 3D canvas, found ${canvases}`);
-      await page.waitForFunction(() => [...document.querySelectorAll('img[alt=""]')].filter(i => i.style.display === 'block').length === 2, null, { timeout: 60000 });
+      await page.waitForFunction(() => { const d = document.querySelector('[data-side1], [data-side2]')?.dataset; return d && d.side1 && d.side2; }, null, { timeout: 60000 });
       await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => !b.disabled && b.textContent.trim() && !b.textContent.includes('⤢')), null, { timeout: 30000 });
     }
     await shot('start');
@@ -113,10 +114,9 @@ try {
     await page.locator('text=Whalley, go!').waitFor({ timeout: 5000 });
     if (!no3d) {
       await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => !b.disabled && b.textContent.trim() && !b.textContent.includes('⤢')), null, { timeout: 30000 });
-      // Pikachu goes back in its ball, and Whalley's picture hides once his model is in
-      // the scene, so only Ditto's sprite shows.
-      await page.waitForFunction(() => [...document.querySelectorAll('img[alt=""]')].filter(i => i.style.display === 'block').length === 1, null, { timeout: 30000 })
-        .catch(async () => { throw new Error(`Whalley's 3D model did not replace the picture (${await visibleSprites()} sprites showing)`); });
+      // Pikachu goes back in its ball and Whalley comes out as his 3D model, not his picture.
+      await page.waitForFunction(() => document.querySelector('[data-side1]')?.dataset.side1 === 'model', null, { timeout: 30000 })
+        .catch(async () => { throw new Error(`Whalley's 3D model did not come out (the sides show ${JSON.stringify(await shown())})`); });
     }
     await shot('after-switch');
   });

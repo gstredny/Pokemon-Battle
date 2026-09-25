@@ -86,3 +86,15 @@ the new CACHE_VERSION.
   - The first set of battle pictures looked bleached. That was my test running 5 software-rendered browsers at once: stale frames showed the arrival flash. Taken one at a time, the colours match.
 - Result: all nine at 12,000 triangles with five clips each. Sizes: swortos 0.68 MB, legtro 0.58, mega 0.60, froggy 0.53, allymon 0.37, smore 0.54, whalley 0.62, grassmic 0.83, alltrik 0.61.
 - Compared with the pictures: every model has its picture's shape and colours (eagle with spread wings, blue and cream serpent, brick body with a tail, red-eyed frog, yellow blob with ears, charred marshmallow, blue whale with red fins, leafy turtle, yellow body with red spikes). S'more's flames are left for step 4 as a moving effect.
+- Step 3 pushed and live: c002ffa, cache v28 (`curl` shows pokemon-battle-v28, and whalley.glb returns 200).
+
+### Step 4: fighting
+- One effect per move type in move-effects.js (all 18 game types, the 15 asked for plus fairy, steel and dark), with hit bursts, dodge hops, misses that fly wide, faint dust and dizzy stars, and camera shake by type.
+- Tries that failed:
+  - The first effects were hidden: the Pokemon sprites were DOM pictures drawn over the canvas, so every effect near a target went behind its picture. Fix: sprites became lit cards in the scene (sprite-card.js, the showroom technique George approved), which also gives the goal's "real shadows".
+  - Screenshots missed the effects, which fly in about 0.4 s while a software-rendered screenshot takes longer. Fix: a hand-stepped clock in the test script, then photographs at 0.20, 0.38 and 0.62 s.
+  - Lightning was a 1-pixel line. Glowing beads along the bolt fixed it. Bug, steel, dragon, water and wind were also made bigger.
+  - A test hung by waiting on a promise under a frozen clock. That was a script bug, fixed.
+- Trainers: Cheer and Slump clips were added in dev/blender/rig.py. All 15 were rebuilt, and the check requires the clips. The game plays them, confirmed by photo: Georgie's arm goes up, Dora's head hangs.
+- S'more: `aura: 'flames'` in his record, drawn as a ring of fire around his model.
+- Checks: 35/35 unit tests; play-check PASSED (27 moves) and --no3d PASSED (15 moves).

@@ -32,12 +32,30 @@ the CDN, so it runs offline.
 
 `index.html` creates the scene with `Battle3D.create({ container, arena, trainers })`
 and calls into it as the battle state changes: `sendOut(side, pokemon)` when a
-Pokemon becomes active, `recall`, `attack(side, type, kind)`, `hit`, `faint`,
+Pokemon becomes active, `recall`, `attack(side, type, kind, result)` (result is
+`'hit'`, `'miss'` or `'dodge'`, rolled before the effect flies), `hit`, `faint`,
 `swap` (Ditto's Transform) and `anchor(side)` to float damage numbers over a
 Pokemon. Side 1 is the player near the camera. Pokemon are sized from
 `DEX_HEIGHT` (real heights, kept between 0.5 m and 3.5 m), drawn `SIZE_SCALE`
 (2.2) times bigger so they read on a phone; above 3.4 m the growth eases off
 and wide ones are held to 3.6 m, so the biggest still fit on screen.
+
+## Move effects, sprites and trainer clips
+
+Each move type has its own 3D effect in `move-effects.js` (fire streams, water
+drops and a splash, lightning, spinning leaves, ice shards, psychic rings, a
+shadow ball, a dragon spiral, a punch, thrown rocks, ground spikes, poison
+bubbles, a wind gust, a bug swarm, fairy stars, steel shards and a dark slash),
+built from the pieces in `effect-kit.js`, which draws its own textures. A hit
+bursts in the type's colours and shakes the camera (harder for rock, ground and
+fighting); a dodge makes the target hop aside; a miss sails wide; a faint gets
+dust and dizzy stars. Real Pokemon are sprite cards inside the scene
+(`sprite-card.js`, the showroom's look): every GIF frame plays (`gif-frames.js`),
+they are lit, cast a real shadow, land with a squash, bounce while waiting and
+flash when hit, and effects pass in front of and behind them. Trainers play
+their Blender clips: Throw, Cheer (the winner) and Slump (the loser), from
+`dev/blender/rig.py`. The arena harness takes `&p1=monsters/smore.png` to show a
+kid monster's model, flames and all.
 
 ## Screenshots from the terminal
 

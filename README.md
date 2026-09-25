@@ -83,6 +83,8 @@ first visit so later launches are instant and work offline.
 | `index.html` | The game: screens, battle rules, the HUD over the battlefield. |
 | `battle3d.js` | The 3D battlefield. `dev/README.md` covers working on it. |
 | `monster3d.js` | A kid monster's 3D model in the battle, with its clips. |
+| `sprite-card.js`, `gif-frames.js` | A Pokemon's animated sprite as a lit card in the 3D scene. |
+| `move-effects.js`, `effect-kit.js` | Each move type's 3D effect, and the pieces they are made of. |
 | `models/` | The trainers' and kid monsters' 3D models, built in Blender. |
 | `vendor/` | Three.js, which draws the 3D. |
 | `sw.js` | Caches the game for offline play. |

@@ -10,6 +10,9 @@
 import * as THREE from './vendor/three.min.js';
 import { GLTFLoader } from './vendor/GLTFLoader.min.js';
 import { MonsterModel } from './monster3d.js';
+import { SpriteCard } from './sprite-card.js';
+import { burst } from './effect-kit.js';
+import { dizzy, impact, moveEffect, SHAKE } from './move-effects.js';
 import volcano from './arenas/volcano.js';
 import cave from './arenas/cave.js';
 import junglePhoto from './arenas/jungle-photo.js';
@@ -818,6 +821,8 @@ class Trainer {
     this.pendingModel = null;
     this.mixer = null;
     this.throwClip = null;
+    this.cheerClip = null;
+    this.slumpClip = null;
   }
   // Fetch the Blender model; update() swaps it in between throws. If it
   // cannot load, the primitive figure simply stays.
@@ -826,8 +831,8 @@ class Trainer {
       err => console.warn(`Kept the built-in trainer: ${url} did not load (${err.message || err})`));
   }
   // The model's joints carry the same names and rest pose as the figure's,
-  // so idle, cheer and slump below drive it unchanged; its Throw clip
-  // replaces the procedural throw.
+  // so the idle below drives it unchanged; its Throw, Cheer and Slump clips
+  // (animated in Blender, dev/blender/rig.py) replace the procedural ones.
   useModel(gltf) {
     const model = gltf.scene;
     const j = {};
@@ -845,11 +850,19 @@ class Trainer {
     this.root.add(model);
     this.j = j;
     this.hipsY = j.hips.position.y;
-    const clip = THREE.AnimationClip.findByName(gltf.animations, 'Throw');
-    if (clip) {
-      this.mixer = new THREE.AnimationMixer(model);
-      this.throwClip = this.mixer.clipAction(clip).setLoop(THREE.LoopOnce, 1);
+    const clip = name => THREE.AnimationClip.findByName(gltf.animations, name);
+    this.mixer = new THREE.AnimationMixer(model);
+    if (clip('Throw')) this.throwClip = this.mixer.clipAction(clip('Throw')).setLoop(THREE.LoopOnce, 1);
+    if (clip('Cheer')) this.cheerClip = this.mixer.clipAction(clip('Cheer'));
+    if (clip('Slump')) {
+      this.slumpClip = this.mixer.clipAction(clip('Slump')).setLoop(THREE.LoopOnce, 1);
+      this.slumpClip.clampWhenFinished = true;
     }
+  }
+  // Blend a Blender clip in while `on`, and out after.
+  hold(action, on) {
+    if (on && !action.isRunning()) action.reset().fadeIn(0.2).play();
+    else if (!on && action.isRunning() && action.getEffectiveWeight() >= 1) action.fadeOut(0.3);
   }
   startThrow() {
     this.throwT = 0;
@@ -887,14 +900,18 @@ class Trainer {
     }
     if (this.cheer > 0) {
       this.cheer -= dt;
-      const k = Math.sin(t * 14) * 0.5 + 0.5;
-      shoulderR = 2.6 + k * 0.4; shoulderL = 2.6 + (1 - k) * 0.4;
-      bob = Math.abs(Math.sin(t * 7)) * 0.12;
+      if (!this.cheerClip) {
+        const k = Math.sin(t * 14) * 0.5 + 0.5;
+        shoulderR = 2.6 + k * 0.4; shoulderL = 2.6 + (1 - k) * 0.4;
+        bob = Math.abs(Math.sin(t * 7)) * 0.12;
+      }
     }
     if (this.sad > 0) {
       this.sad -= dt;
-      torsoX = 0.35; j.head.rotation.x = 0.4;
+      if (!this.slumpClip) { torsoX = 0.35; j.head.rotation.x = 0.4; }
     }
+    if (this.cheerClip) this.hold(this.cheerClip, this.cheer > 0);
+    if (this.slumpClip) this.hold(this.slumpClip, this.sad > 0);
     j.shoulderR.rotation.x = shoulderR;
     j.shoulderL.rotation.x = shoulderL;
     j.elbowR.rotation.x = elbowR;
@@ -941,10 +958,11 @@ function makePokeball() {
 }
 
 // ---------------------------------------------------------------------------
-// A Pokemon standing in the scene: its animated sprite drawn as a billboard in
-// a DOM layer over the canvas, plus a soft shadow on the ground in WebGL. A
-// kid monster with a 3D model (pokemon.model) shows that instead, once it has
-// loaded (monster3d.js); if it cannot load, the picture stays.
+// A Pokemon standing in the scene: its animated sprite as a lit card that
+// faces the camera and casts a real shadow (sprite-card.js), plus a soft
+// contact shadow at its feet. A kid monster with a 3D model (pokemon.model)
+// shows that instead once it has loaded (monster3d.js); if it cannot load,
+// the picture stays.
 // ---------------------------------------------------------------------------
 // Real heights from the Pokedex (metres), by sprite file name, so Charizard
 // towers over Pikachu. Tiny ones are kept big enough to read on a phone and
@@ -968,115 +986,95 @@ const heightFor = img => {
   return h <= KNEE ? h : KNEE + (h - KNEE) * ABOVE_KNEE;
 };
 
-// The box of non-transparent pixels in the sprite's first frame, so the
-// Pokemon itself (not its padded canvas) is sized and stands on the ground.
-function opaqueBounds(img) {
-  const w = img.naturalWidth, h = img.naturalHeight;
-  try {
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    const g = c.getContext('2d', { willReadFrequently: true });
-    g.drawImage(img, 0, 0);
-    const a = g.getImageData(0, 0, w, h).data;
-    let top = h, bottom = -1, left = w, right = -1;
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (a[(y * w + x) * 4 + 3] > 16) {
-          if (y < top) top = y;
-          if (y > bottom) bottom = y;
-          if (x < left) left = x;
-          if (x > right) right = x;
-        }
-      }
-    }
-    if (bottom < 0) return null;
-    return { top, bottom: bottom + 1, left, right: right + 1 };
-  } catch (err) {
-    return null; // e.g. a sprite from another site the canvas may not read
-  }
-}
-
 class PokemonActor {
-  constructor(layer, scene, mirror) {
-    this.el = document.createElement('img');
-    this.el.alt = '';
-    this.el.draggable = false;
-    Object.assign(this.el.style, { position: 'absolute', left: '0', top: '0', transformOrigin: 'bottom center', imageRendering: 'pixelated', pointerEvents: 'none', willChange: 'transform', display: 'none' });
-    layer.appendChild(this.el);
+  constructor(layer, scene, mirror, side) {
     this.burst = document.createElement('div');
     Object.assign(this.burst.style, { position: 'absolute', left: '0', top: '0', width: '10px', height: '10px', borderRadius: '50%', pointerEvents: 'none', display: 'none', transform: 'translate(-50%,-50%)' });
     layer.appendChild(this.burst);
+    this.layer = layer;
+    this.side = side;
     this.mirror = mirror;
     this.pos = new THREE.Vector3();
     this.offset = new THREE.Vector3();
     this.scale = 0;
     this.rise = 0;
+    this.squash = 1;     // below 1 shorter and wider, for a sprite landing
     this.rot = 0;
     this.opacity = 1;
     this.filter = 'none';
     this.visible = false;
-    this.aspect = 1;
     this.worldH = 1.6;
     this.drop = 0;
     this.footprint = 1.2;
+    this.clock = 0;
     this.shadow = new THREE.Mesh(new THREE.CircleGeometry(1, 24), new THREE.MeshBasicMaterial({ map: SHADOW_DOT(), transparent: true, depthWrite: false, color: '#000000' }));
     this.shadow.rotation.x = -Math.PI / 2;
     this.shadow.renderOrder = 2;
     scene.add(this.shadow);
     this.scene = scene;
     this.facing = 0;     // which way a 3D model turns (radians about the vertical)
+    this.card = null;
     this.model = null;
     this.ready = null;
   }
   set(pokemon) {
-    this.el.src = pokemon.img;
     this.pokemon = pokemon;
-    this.aspect = 1;
+    this.card?.dispose();
     this.model?.dispose();
-    this.model = null;
+    this.card = this.model = null;
     this.modelHeight = heightFor(pokemon.img);
-    const model = pokemon.model && MonsterModel.load(pokemon.model).then(m => {
+    const model = pokemon.model && MonsterModel.load(pokemon.model, pokemon.aura).then(m => {
       if (this.pokemon !== pokemon) return m.dispose();   // swapped again while it loaded
       this.model = m;
       this.scene.add(m.root);
     }, err => console.warn('Battle3D: showing the picture, the 3D model did not load:', err.message));
-    const picture = new Promise(resolve => {
-      const done = () => {
-        const w = this.el.naturalWidth || 80, h = this.el.naturalHeight || 80;
-        const b = opaqueBounds(this.el) || { top: 0, bottom: h, left: 0, right: w };
-        this.aspect = w / h;
-        // The whole canvas is drawn, so scale it until the visible part is the
-        // target height; long ones like Gyarados are also held to a width so
-        // they do not hide the other side.
-        const visH = b.bottom - b.top, visW = b.right - b.left;
-        const target = Math.min(heightFor(pokemon.img), FIT_WIDTH * visH / visW);
-        this.worldH = target * h / visH;
-        this.drop = (h - b.bottom) / h * this.worldH;
-        this.footprint = (b.right - b.left) / h * this.worldH;
-        resolve();
-      };
-      if (this.el.complete && this.el.naturalWidth) done();
-      else {
-        this.el.onload = done;
-        this.el.onerror = () => { this.worldH = heightFor(pokemon.img); this.drop = 0; this.footprint = this.worldH * 0.8; resolve(); };
-      }
+    const picture = SpriteCard.load(pokemon.img).then(card => {
+      if (this.pokemon !== pokemon) return card.dispose();
+      this.card = card;
+      this.scene.add(card.root);
+      const { width: w, height: h } = card.gif, b = card.box;
+      // The whole canvas is drawn, so scale it until the visible part is the
+      // target height; long ones like Gyarados are also held to a width so
+      // they do not hide the other side.
+      const visH = b.bottom - b.top, visW = b.right - b.left;
+      const target = Math.min(heightFor(pokemon.img), FIT_WIDTH * visH / visW);
+      this.worldH = target * h / visH;
+      this.drop = (h - b.bottom) / h * this.worldH;
+      this.footprint = visW / h * this.worldH;
+    }, err => {
+      console.warn('Battle3D: the sprite did not load:', err.message);
+      this.worldH = heightFor(pokemon.img); this.drop = 0; this.footprint = this.worldH * 0.8;
     });
     this.ready = Promise.all([picture, model]);
     return this.ready;
   }
-  // Play one of a 3D model's clips (Land, Attack, Hit, Faint); a picture has none.
+  // Play one of a 3D model's clips (Land, Attack, Hit, Faint); a sprite has none.
   clip(name) {
     this.model?.play(name);
   }
   update(camera, w, h, tmpA, tmpB, dt) {
     const s = this.scale;
-    if (!this.visible || s <= 0.001) {
-      this.el.style.display = 'none';
+    const out = this.visible && s > 0.001;
+    const shows = !out ? '' : this.model ? 'model' : this.card ? 'sprite' : '';
+    if (this.layer.dataset['side' + this.side] !== shows) this.layer.dataset['side' + this.side] = shows;   // for dev/play-check.mjs
+    if (!out) {
       this.shadow.visible = false;
+      if (this.card) this.card.root.visible = false;
       if (this.model) this.model.root.visible = false;
       return;
     }
+    this.clock += dt;
     const tall = this.model ? this.modelHeight : this.worldH, drop = this.model ? 0 : this.drop;
+    if (this.model) {
+      if (this.card) this.card.root.visible = false;
+      this.model.follow(this, this.modelHeight, dt);
+    } else if (this.card) {
+      // A sprite bounces gently on the spot while it waits.
+      const bob = Math.abs(Math.sin(this.clock * 2.6)) * 0.07 * s;
+      this.rise += bob;
+      this.card.follow(this, camera, this.worldH, this.drop, dt);
+      this.rise -= bob;
+    }
     tmpA.copy(this.pos).add(this.offset);
     tmpA.y += this.rise - drop * s;
     tmpB.copy(tmpA);
@@ -1085,30 +1083,19 @@ class PokemonActor {
     tmpB.project(camera);
     const fx = (tmpA.x + 1) / 2 * w, fy = (1 - tmpA.y) / 2 * h, hy = (1 - tmpB.y) / 2 * h;
     const ph = Math.max(1, fy - hy);
-    const pw = ph * this.aspect;
-    if (this.model) {
-      this.el.style.display = 'none';
-      this.model.follow(this, this.modelHeight, dt);
-    } else {
-      this.el.style.display = 'block';
-      this.el.style.width = pw + 'px';
-      this.el.style.height = ph + 'px';
-      this.el.style.opacity = this.opacity;
-      this.el.style.filter = this.filter;
-      this.el.style.transform = `translate3d(${(fx - pw / 2).toFixed(1)}px, ${(fy - ph).toFixed(1)}px, 0) rotate(${this.rot.toFixed(2)}deg)${this.mirror ? ' scaleX(-1)' : ''}`;
-    }
     this.shadow.visible = true;
     this.shadow.position.set(this.pos.x + this.offset.x, 0.02, this.pos.z + this.offset.z);
     const sw = this.footprint * 0.55 * s;
     this.shadow.scale.set(sw, sw * 0.6, 1);
-    this.shadow.material.opacity = clamp(1 - this.rise * 0.6, 0, 1) * this.opacity;
+    // The sun casts the real shadow now; this soft one just grounds the feet.
+    this.shadow.material.opacity = clamp(1 - this.rise * 0.6, 0, 1) * this.opacity * 0.6;
     this.center = { x: fx, y: fy - ph / 2 };
     this.top = fy - ph;
   }
   dispose() {
-    this.el.remove();
     this.burst.remove();
     this.shadow.parent?.remove(this.shadow);
+    this.card?.dispose();
     this.model?.dispose();
   }
 }
@@ -1206,6 +1193,8 @@ class BattleScene {
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+    // What the move effects (move-effects.js) draw with.
+    this.fx = { scene: this.scene, camera: this.camera, timeline: this.timeline, effects: this.effects };
     const rng = mulberry32(seed * 7919 + arena.length);
     this.arena = ARENAS[arena].build(this.scene, rng);
     // Photo arenas load for a moment and hand back a `ready` promise: keep the
@@ -1237,8 +1226,8 @@ class BattleScene {
     });
 
     this.actors = {
-      2: new PokemonActor(this.layer, this.scene, false),
-      1: new PokemonActor(this.layer, this.scene, true),
+      2: new PokemonActor(this.layer, this.scene, false, 2),
+      1: new PokemonActor(this.layer, this.scene, true, 1),
     };
 
     this.flashLight = new THREE.PointLight('#ffffff', 0, 12, 1.5);
@@ -1453,6 +1442,8 @@ class BattleScene {
       });
       actor.scale = 1; actor.rise = 0; actor.filter = 'none';
       actor.clip('Land');
+      // A sprite lands with a squash and springs back up.
+      if (!actor.model) this.timeline.tween(0.4, k => { actor.squash = 1 - Math.sin(k * Math.PI) * 0.2 * (1 - k); }).then(() => { actor.squash = 1; });
       this.timeline.tween(0.25, k => { lid.rotation.x = -(1 - k) * 2.1; })
         .then(() => this.timeline.tween(0.35, k => { const s = 1 - k; ball.scale.setScalar(Math.max(s, 0.001)); ball.position.y = r + k * 0.6; }))
         .then(() => { this.scene.remove(ball); });
@@ -1491,8 +1482,10 @@ class BattleScene {
     });
   }
 
-  // The attacker lunges and a bolt of its move's type flies at the other side.
-  attack(side, type, kind = 'attack') {
+  // The attacker lunges and its move's own effect (move-effects.js) flies at
+  // the other side. The game says how it ends: 'hit' bursts on the target,
+  // 'dodge' sees the target hop aside as it passes, 'miss' sails wide.
+  attack(side, type, kind = 'attack', result = 'hit') {
     const other = side === 1 ? 2 : 1;
     const color = TYPE_COLORS[type] || TYPE_COLORS.normal;
     if (kind === 'heal') return this.buff(side, '#6ee86e');
@@ -1501,9 +1494,7 @@ class BattleScene {
     return this.enqueue(side, async () => {
       const actor = this.actors[side];
       if (!actor.visible) return;
-      const dir = this.layout[other].spot.clone().sub(this.layout[side].spot);
-      const dist = dir.length();
-      dir.normalize();
+      const dir = this.layout[other].spot.clone().sub(this.layout[side].spot).normalize();
       actor.clip('Attack');
       this.timeline.tween(0.42, k => {
         const lunge = k < 0.4 ? easeOutCubic(k / 0.4) : 1 - easeInOutCubic((k - 0.4) / 0.6);
@@ -1511,27 +1502,31 @@ class BattleScene {
         actor.rise = lunge * 0.3;
       }).then(() => { actor.offset.set(0, 0, 0); actor.rise = 0; });
 
-      const bolt = new THREE.Sprite(new THREE.SpriteMaterial({ map: SOFT_DOT(), color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
-      bolt.scale.set(0.9, 0.9, 1);
-      const from = this.layout[side].spot.clone().add(new THREE.Vector3(0, 0.9, 0)).add(dir.clone().multiplyScalar(0.6));
-      const to = this.layout[other].spot.clone().add(new THREE.Vector3(0, 0.9, 0));
-      this.scene.add(bolt);
-      const light = new THREE.PointLight(color, 30, 8, 1.5);
-      this.scene.add(light);
+      const chest = s => Math.min(heightFor(this.actors[s].pokemon?.img) * 0.45, 1.5);
+      const from = this.layout[side].spot.clone().add(new THREE.Vector3(0, chest(side), 0)).add(dir.clone().multiplyScalar(0.6));
+      const to = this.layout[other].spot.clone().add(new THREE.Vector3(0, chest(other), 0));
+      const aim = result === 'miss' ? to.clone().add(dir.clone().multiplyScalar(4)).add(new THREE.Vector3(-dir.z, 1.2, dir.x).multiplyScalar(1.5)) : to;
+      if (result === 'dodge') this.timeline.wait(0.15).then(() => this.hopAside(other, dir));
       await this.timeline.wait(0.12);
-      await this.timeline.tween(0.3, k => {
-        bolt.position.lerpVectors(from, to, k);
-        bolt.position.y += Math.sin(k * Math.PI) * 0.8;
-        light.position.copy(bolt.position);
-        const s = 0.9 + Math.sin(k * 40) * 0.2;
-        bolt.scale.set(s, s, 1);
-        if (Math.random() < 0.6) this.particles(bolt.position, color, 3, 1.2, 0.35, 2);
-      }, easeInQuad);
-      this.scene.remove(bolt, light);
+      await moveEffect(type)(this.fx, from, aim);
+      if (result !== 'hit') return;
       this.flash(to, color, 2.5, 0.45);
-      this.particles(this.layout[other].spot, color, 36, 4, 0.7, 7);
-      this.shake = Math.max(this.shake, 1);
+      impact(this.fx, type, to);
+      this.shake = Math.max(this.shake, SHAKE[type] ?? 1);
     });
+  }
+
+  // A dodge: the Pokemon springs sideways out of the attack's way and back.
+  hopAside(side, dir) {
+    const actor = this.actors[side];
+    if (!actor.visible) return;
+    const aside = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(side === 1 ? 1.3 : -1.3);
+    burst(this.fx, this.layout[side].spot.clone().add(new THREE.Vector3(0, 0.1, 0)), { color: '#e8e0d0', count: 10, speed: 1.5, life: 0.5, size: 0.4, gravity: 1 });
+    return this.timeline.tween(0.55, k => {
+      const out = k < 0.35 ? easeOutCubic(k / 0.35) : 1 - easeInOutCubic((k - 0.35) / 0.65);
+      actor.offset.copy(aside).multiplyScalar(out);
+      actor.rise = Math.sin(Math.min(k / 0.35, 1) * Math.PI) * 0.4;
+    }).then(() => { actor.offset.set(0, 0, 0); actor.rise = 0; });
   }
 
   // The Pokemon on this side takes the hit: flinch, flash, shake.
@@ -1570,6 +1565,9 @@ class BattleScene {
       const actor = this.actors[side];
       if (!actor.visible) return;
       actor.clip('Faint');
+      const spot = this.layout[side].spot;
+      burst(this.fx, spot.clone().add(new THREE.Vector3(0, 0.1, 0)), { color: '#d8ccb8', count: 16, speed: 1.8, life: 0.8, size: 0.55, gravity: 0.8 });
+      dizzy(this.fx, spot.clone().add(new THREE.Vector3(0, heightFor(actor.pokemon?.img) * 0.8, 0)));
       await this.timeline.tween(actor.model ? 1.3 : 0.85, k => {
         actor.rise = -k * k * (actor.model ? 0.3 : 0.9);
         actor.rot = (actor.mirror ? -1 : 1) * k * 22;
