@@ -3,6 +3,13 @@
 `battle3d.js` is the whole 3D engine: arenas, trainers, pokeballs, effects.
 It runs on Three.js from `vendor/three.min.js` and needs no build step.
 
+## The showcase, for a phone
+
+`dev/showcase.html` (https://gstredny.github.io/Pokemon-Battle/dev/showcase.html)
+shows everything the 3D world has: tabs for the six places, every kid monster
+and some real Pokemon, all 18 move effects plus a dodge and a miss, and the
+props (throw a ball, the team stand, the trophy, a faint, the City crowd).
+
 ## See it without the game around it
 
 From the repo root:

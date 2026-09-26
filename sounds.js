@@ -6,11 +6,12 @@
 //   Sounds.loop('place-ocean', 0.4) starts a place's sound; returns a function that stops it
 (function () {
   const buffers = new Map();   // name -> AudioBuffer, or a Promise while loading, or null if missing
+  const folder = new URL('sounds/', document.currentScript.src).href;   // beside this file, from any page
 
   const load = name => {
     if (buffers.has(name)) return buffers.get(name);
     const ctx = Music.context();
-    const loading = fetch(`sounds/${name}.mp3`)
+    const loading = fetch(`${folder}${name}.mp3`)
       .then(r => { if (!r.ok) throw new Error(`${name}: ${r.status}`); return r.arrayBuffer(); })
       .then(bytes => new Promise((ok, fail) => ctx.decodeAudioData(bytes, ok, fail)))
       .then(buffer => { buffers.set(name, buffer); return buffer; },

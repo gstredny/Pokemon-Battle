@@ -1,6 +1,6 @@
 // Caches the whole game so it loads instantly and plays with no connection.
 // Bump CACHE_VERSION whenever you change index.html or the artwork.
-const CACHE_VERSION = 'pokemon-battle-v31';
+const CACHE_VERSION = 'pokemon-battle-v32';
 
 const CDN = [
   'https://unpkg.com/react@18/umd/react.production.min.js',

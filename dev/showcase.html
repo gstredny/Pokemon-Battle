@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>3D World Showcase</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<style>
+  :root { --panel: rgba(12, 16, 28, 0.86); --line: #2c3450; --text: #f2f4fa; --dim: #9aa3bd; --accent: #ffd23a; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  #stage { position: absolute; inset: 0; }
+  #sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--panel); border-top: 1px solid var(--line); padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); }
+  #tabs { display: flex; gap: 6px; margin-bottom: 6px; }
+  #tabs button { flex: 1; font-size: 15px; font-weight: 700; padding: 8px 4px; border-radius: 10px; border: 1px solid var(--line); background: #1b2236; color: var(--dim); }
+  #tabs button[aria-selected="true"] { background: #2a3456; color: var(--accent); border-color: var(--accent); }
+  .row { display: none; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+  .row.shown { display: flex; }
+  .row button { flex: 0 0 auto; min-width: 74px; font-size: 13px; font-weight: 700; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: #151b2c; color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .row button img { width: 40px; height: 40px; object-fit: contain; }
+  .row button .big { font-size: 22px; }
+  #note { position: absolute; top: calc(8px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 5; background: rgba(0,0,0,0.55); padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: 700; white-space: nowrap; }
+  #tap { position: absolute; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; background: rgba(5, 8, 16, 0.82); font-size: 22px; font-weight: 800; text-align: center; padding: 20px; }
+</style>
+<script src="../music.js"></script>
+<script src="../sounds.js"></script>
+<script src="../card-rules.js"></script>
+<script src="../kid-monsters.js"></script>
+<script type="module" src="../battle3d.js"></script>
+</head><body>
+<div id="stage"></div>
+<div id="note">Loading…</div>
+<div id="tap">Tap to see the 3D world<br><span style="font-size:14px;font-weight:600;color:#9aa3bd">(with sound)</span></div>
+<div id="sheet">
+  <div id="tabs" role="tablist"></div>
+  <div class="row" id="places"></div>
+  <div class="row" id="monsters"></div>
+  <div class="row" id="moves"></div>
+  <div class="row" id="props"></div>
+</div>
+<script>
+  // Everything the 3D world has, to look at on a phone: pick a place, send out
+  // any kid monster (their 3D models) or a real Pokemon, fire any move type,
+  // and try the props. It drives the same engine as the game (battle3d.js).
+  window.errors = [];
+  addEventListener('error', e => window.errors.push(String(e.message)));
+  const $ = id => document.getElementById(id);
+  const PLACES = [['jungle', 'Jungle', '🌴'], ['ocean', 'Ocean', '🌊'], ['mountains', 'Mountains', '⛰️'], ['volcano', 'Volcano', '🌋'], ['city', 'City', '🏙️'], ['cave', 'Crystal Cave', '💎']];
+  const TYPES = [['fire', '🔥'], ['water', '💧'], ['electric', '⚡'], ['grass', '🌿'], ['ice', '❄️'], ['psychic', '🔮'], ['ghost', '👻'], ['dragon', '🐉'], ['fighting', '👊'], ['normal', '⭐'], ['rock', '🪨'], ['ground', '🏜️'], ['poison', '☠️'], ['flying', '🦅'], ['bug', '🐛'], ['fairy', '✨'], ['steel', '🛡️'], ['dark', '🌑']];
+  const kid = KID_CARDS.map((card, i) => { const m = monsterFromCard(card, 1000 + i); return { ...m, img: '../' + m.img, model: '../' + m.model }; });
+  const real = [['Pikachu', 'electric', 'pikachu'], ['Charizard', 'fire', 'charizard'], ['Gengar', 'ghost', 'gengar'], ['Snorlax', 'normal', 'snorlax']]
+    .map(([name, type, file]) => ({ name, type, img: `../${file}.gif` }));
+  const MONSTERS = [...kid, ...real];
+  let scene = null, place = 'city', mine = kid[6], theirs = kid[4], alive = [true, true, true];
+
+  const note = text => { $('note').textContent = text; };
+  async function build() {
+    scene?.dispose();
+    note('Loading ' + PLACES.find(p => p[0] === place)[1] + '…');
+    scene = window.Battle3D.create({ container: $('stage'), arena: place, trainers: ['georgie', 'dora'] });
+    window.scene = scene;
+    await scene.ready;
+    scene.sendOut(1, mine);
+    scene.sendOut(2, theirs);
+    alive = [true, true, true];
+    scene.team(1, alive); scene.team(2, [true, true, true]);
+    note(`${mine.name} vs ${theirs.name} in the ${PLACES.find(p => p[0] === place)[1]}`);
+  }
+  const button = (row, html, fn) => { const b = document.createElement('button'); b.innerHTML = html; b.onclick = fn; $(row).append(b); return b; };
+
+  PLACES.forEach(([id, name, icon]) => button('places', `<span class="big">${icon}</span>${name}`, () => { place = id; build(); }));
+  MONSTERS.forEach(m => button('monsters', `<img src="${m.img}" alt="">${m.name}`, async () => {
+    note(`${mine.name} comes back… ${m.name}, go!`);
+    await scene.recall(1);
+    mine = m;
+    scene.sendOut(1, m);
+  }));
+  TYPES.forEach(([type, icon]) => button('moves', `<span class="big">${icon}</span>${type[0].toUpperCase() + type.slice(1)}`, () => {
+    note(`${mine.name} uses a ${type} move!`);
+    Sounds.play('move-' + type);
+    scene.attack(1, type);
+    setTimeout(() => { scene.hit(2); Sounds.play('hit'); }, 600);
+  }));
+  button('moves', '<span class="big">💨</span>Dodge', () => { note(`${theirs.name} dodges!`); Sounds.play('move-electric'); scene.attack(1, 'electric', 'attack', 'dodge'); });
+  button('moves', '<span class="big">🙈</span>Miss', () => { note('It missed!'); Sounds.play('move-fire'); scene.attack(1, 'fire', 'attack', 'miss'); });
+  button('props', '<span class="big">🔴</span>Throw a ball', async () => { note(`Go, ${theirs.name}!`); await scene.recall(2); scene.sendOut(2, theirs); });
+  button('props', '<span class="big">⚫</span>Team stand', () => {
+    const i = alive.indexOf(true);
+    alive = i < 0 ? [true, true, true] : alive.map((a, j) => j === i ? false : a);
+    scene.team(1, alive);
+    note(alive.includes(false) ? 'A fainted Pokemon\'s ball goes dark' : 'All three ready again');
+  });
+  button('props', '<img src="../trophy.png" alt="">Trophy', () => { note('Georgie wins the trophy!'); Sounds.play('cheer', { volume: 0.5 }); scene.faint(2); setTimeout(() => scene.award(1), 1200); });
+  button('props', '<span class="big">😵</span>Faint', () => { note(`${theirs.name} fainted`); Sounds.play('faint'); scene.faint(2); setTimeout(() => scene.sendOut(2, theirs), 2600); });
+  button('props', '<span class="big">📣</span>Crowd', async () => {
+    if (place !== 'city') { place = 'city'; await build(); }
+    note('The City crowd jumps when a big hit shakes the ground');
+    scene.attack(1, 'rock');
+  });
+
+  const TABS = [['places', 'Places'], ['monsters', 'Monsters'], ['moves', 'Moves'], ['props', 'Props']];
+  TABS.forEach(([id, label], i) => {
+    const t = document.createElement('button');
+    t.textContent = label;
+    t.setAttribute('role', 'tab');
+    t.onclick = () => {
+      TABS.forEach(([other]) => $(other).classList.toggle('shown', other === id));
+      [...$('tabs').children].forEach(b => b.setAttribute('aria-selected', b === t));
+    };
+    $('tabs').append(t);
+    if (!i) t.click();
+  });
+
+  $('tap').onclick = () => {
+    Music.context();   // phones allow sound only after a tap
+    Sounds.warm();
+    TYPES.forEach(([type]) => Sounds.load('move-' + type));
+    $('tap').remove();
+  };
+  const start = () => build().catch(err => { window.errors.push(err.message); note('Could not load: ' + err.message); });
+  if (window.Battle3D) start(); else addEventListener('battle3d-ready', start);
+</script>
+</body></html>

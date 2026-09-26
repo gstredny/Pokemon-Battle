@@ -115,3 +115,8 @@ the new CACHE_VERSION.
 - The trophy rises by the winner with sparkles while they cheer. All five ways a battle ends now go through endBattle, which waits 2.6 s in 3D before the winner screen. The winner screen shows trophy.png instead of the 🏆 emoji.
 - City: two grandstands with 6-colour fans that bounce and jump on camera shake, concrete road barriers (Poly Haven), traffic cones, a bus stop and covered parked cars (Poly Haven). Rebuilt at 4.42 MB, 82,622 triangles.
 - Checks: 35/35 tests; play-check PASSED (33 moves) and --no3d PASSED. Photos show the cones, car, stands and fans, the red-and-white balls (the fainted ones dark), the trophy moment and the winner screen.
+- Step 6 pushed and live: 583e1f9, cache v31.
+
+### Showcase
+- dev/showcase.html: tabs for places, monsters, moves and props, driving the real engine; it works sideways and upright (photographed at 844x390 and 390x844, no page errors).
+- Tries that failed: sounds.js fetched sounds/ relative to the page, which 404s from dev/. It now resolves sounds/ beside sounds.js itself.
