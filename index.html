@@ -2019,7 +2019,7 @@ function PokemonBattle() {
         const attackerTeam = isP1 ? player1Team : player2Team;
         const newTeam = attackerTeam.map((p, i) => {
           if (i !== attackerActive) return p;
-          return { ...p, atk: defender.atk, def: defender.def, spd: defender.spd, type: defender.type, img: defender.img, model: defender.model, attacks: defender.attacks.map(a => ({...a})), transformed: true, originalName: p.name };
+          return { ...p, atk: defender.atk, def: defender.def, spd: defender.spd, type: defender.type, img: defender.img, attacks: defender.attacks.map(a => ({...a})), transformed: true, originalName: p.name };
         });
         setAttackerTeam(newTeam);
         playSound('boost');

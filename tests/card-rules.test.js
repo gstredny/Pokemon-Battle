@@ -31,7 +31,6 @@ test('the monster keeps its card details and drawing path', () => {
   assert.equal(m.type, 'fire');
   assert.equal(m.cry, 'dragon');
   assert.equal(m.img, 'monsters/blaze-jaw.png');
-  assert.equal(m.model, 'models/monsters/blaze-jaw.glb');   // the 3D battle shows this, or the picture if it is missing
 });
 
 test('the four powers become the four moves', () => {
@@ -62,12 +61,6 @@ test('power words map to battle effects', () => {
   assert.equal(moves('freeze', 'stronger')[3].boostAtk, true);
   assert.equal(moves('burn', 'tougher')[3].boostDef, true);
   assert.equal(moves('zap', 'copy')[3].transform, true);
-});
-
-test('a monster drawn inside flames keeps them in the 3D battle', () => {
-  assert.equal(monsterFromCard(card({ aura: 'flames' }), 1).aura, 'flames');
-  assert.equal(monsterFromCard(card(), 1).aura, undefined);
-  assert.throws(() => monsterFromCard(card({ aura: 'rainbow' }), 1), /aura "rainbow"/);
 });
 
 test('any type the game knows is allowed', () => {

@@ -45,7 +45,7 @@ const step = async (name, fn) => { stepName = name; await fn(); console.log('  o
 const shot = name => page.screenshot({ path: `${OUT}/play-${no3d ? '2d-' : ''}${name}.png` });
 // The move buttons: every button in the battle except fullscreen (⤢), mute (🔊/🔇) and the winner screen's PLAY AGAIN.
 const moveButtons = () => page.locator('button').filter({ hasText: /\S/ }).filter({ hasNotText: '⤢' }).filter({ hasNotText: /🔊|🔇/ }).filter({ hasNotText: 'PLAY AGAIN' });
-// What each side of the 3D battle shows: 'sprite', 'model' (a kid monster's 3D model) or '' (none).
+// What each side of the 3D battle shows: 'sprite' or '' (none).
 const shown = () => page.evaluate(() => { const d = document.querySelector('[data-side1], [data-side2]')?.dataset || {}; return [d.side1 || '', d.side2 || '']; });
 const gameOver = () => page.locator('text=/WINS!|DRAW!/').count().then(n => n > 0);
 
@@ -108,15 +108,15 @@ try {
       if (!same) throw new Error('the 3D scene was rebuilt when the phone turned');
     });
   }
-  await step('Ash switches Pikachu for Whalley' + (no3d ? '' : ', who comes out as a 3D model'), async () => {
+  await step('Ash switches Pikachu for Whalley' + (no3d ? '' : ', who comes out as his picture'), async () => {
     // The Whalley ball in Ash's team row (3D HUD card or 2D team indicator).
     await page.locator('img[alt="Whalley"]').first().click();
     await page.locator('text=Whalley, go!').waitFor({ timeout: 5000 });
     if (!no3d) {
       await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => !b.disabled && b.textContent.trim() && !b.textContent.includes('⤢')), null, { timeout: 30000 });
-      // Pikachu goes back in its ball and Whalley comes out as his 3D model, not his picture.
-      await page.waitForFunction(() => document.querySelector('[data-side1]')?.dataset.side1 === 'model', null, { timeout: 30000 })
-        .catch(async () => { throw new Error(`Whalley's 3D model did not come out (the sides show ${JSON.stringify(await shown())})`); });
+      // Pikachu goes back in its ball and Whalley comes out as his picture.
+      await page.waitForFunction(() => document.querySelector('[data-side1]')?.dataset.side1 === 'sprite', null, { timeout: 30000 })
+        .catch(async () => { throw new Error(`Whalley's picture did not come out (the sides show ${JSON.stringify(await shown())})`); });
     }
     await shot('after-switch');
   });

@@ -36,14 +36,14 @@
 </div>
 <script>
   // Everything the 3D world has, to look at on a phone: pick a place, send out
-  // any kid monster (their 3D models) or a real Pokemon, fire any move type,
+  // any kid monster or a real Pokemon, fire any move type,
   // and try the props. It drives the same engine as the game (battle3d.js).
   window.errors = [];
   addEventListener('error', e => window.errors.push(String(e.message)));
   const $ = id => document.getElementById(id);
   const PLACES = [['jungle', 'Jungle', '🌴'], ['ocean', 'Ocean', '🌊'], ['mountains', 'Mountains', '⛰️'], ['volcano', 'Volcano', '🌋'], ['city', 'City', '🏙️'], ['cave', 'Crystal Cave', '💎']];
   const TYPES = [['fire', '🔥'], ['water', '💧'], ['electric', '⚡'], ['grass', '🌿'], ['ice', '❄️'], ['psychic', '🔮'], ['ghost', '👻'], ['dragon', '🐉'], ['fighting', '👊'], ['normal', '⭐'], ['rock', '🪨'], ['ground', '🏜️'], ['poison', '☠️'], ['flying', '🦅'], ['bug', '🐛'], ['fairy', '✨'], ['steel', '🛡️'], ['dark', '🌑']];
-  const kid = KID_CARDS.map((card, i) => { const m = monsterFromCard(card, 1000 + i); return { ...m, img: '../' + m.img, model: '../' + m.model }; });
+  const kid = KID_CARDS.map((card, i) => { const m = monsterFromCard(card, 1000 + i); return { ...m, img: '../' + m.img }; });
   const real = [['Pikachu', 'electric', 'pikachu'], ['Charizard', 'fire', 'charizard'], ['Gengar', 'ghost', 'gengar'], ['Snorlax', 'normal', 'snorlax']]
     .map(([name, type, file]) => ({ name, type, img: `../${file}.gif` }));
   const MONSTERS = [...kid, ...real];

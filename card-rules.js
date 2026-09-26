@@ -14,8 +14,6 @@
   // A heal gives back 30%, not half: kids tap at random, and half made kid
   // monsters heal faster than they were hurt (see tests/card-rules.test.js).
   const SAVE_ME_FIELDS = { heal: { heal: 30 }, stronger: { boostAtk: true }, tougher: { boostDef: true }, faster: { boostSpd: true }, copy: { transform: true } };
-  // What can surround a monster in the 3D battle, for a kid who drew it that way.
-  const AURAS = ['flames'];
 
   // Records are typed in by hand, so check one before it can break the game.
   function checkCard(card) {
@@ -42,7 +40,6 @@
     if (!Object.hasOwn(TRICK_EFFECTS, powers.trick?.does)) problems.push(`trick "${powers.trick?.does}" is not a known Trick`);
     needText(powers.saveMe?.name, 'Save-Me name');
     if (!Object.hasOwn(SAVE_ME_FIELDS, powers.saveMe?.does)) problems.push(`save-me "${powers.saveMe?.does}" is not a known Save-Me`);
-    if (card.aura !== undefined && !AURAS.includes(card.aura)) problems.push(`aura "${card.aura}" is not a known aura`);
     if (problems.length) throw new Error(`${typeof card.name === 'string' && card.name || card.slug}: ${problems.join('; ')}`);
   }
 
@@ -53,9 +50,6 @@
       id, name: card.name, madeBy: card.madeBy, type, cry: card.cry,
       hp: stats.hp, atk: stats.atk, def: stats.def, spd: stats.spd,
       img: `monsters/${card.slug}.png`,
-      // Built in Blender from the picture (dev/monsters/); the 3D battle falls back to the picture.
-      model: `models/monsters/${card.slug}.glb`,
-      aura: card.aura,
       attacks: [
         { name: powers.bigHit, power: 110, accuracy: 75, type },
         { name: powers.fastHit, power: 40, accuracy: 100, type, priority: true },

@@ -9,7 +9,6 @@
 // that model must expose are listed next to buildTrainer().
 import * as THREE from './vendor/three.min.js';
 import { GLTFLoader } from './vendor/GLTFLoader.min.js';
-import { MonsterModel } from './monster3d.js';
 import { SpriteCard } from './sprite-card.js';
 import { burst } from './effect-kit.js';
 import { dizzy, impact, moveEffect, SHAKE } from './move-effects.js';
@@ -978,9 +977,7 @@ function makePokeball() {
 // ---------------------------------------------------------------------------
 // A Pokemon standing in the scene: its animated sprite as a lit card that
 // faces the camera and casts a real shadow (sprite-card.js), plus a soft
-// contact shadow at its feet. A kid monster with a 3D model (pokemon.model)
-// shows that instead once it has loaded (monster3d.js); if it cannot load,
-// the picture stays.
+// contact shadow at its feet. A kid monster's picture is drawn the same way.
 // ---------------------------------------------------------------------------
 // Real heights from the Pokedex (metres), by sprite file name, so Charizard
 // towers over Pikachu. Tiny ones are kept big enough to read on a phone and
@@ -1030,23 +1027,14 @@ class PokemonActor {
     this.shadow.renderOrder = 2;
     scene.add(this.shadow);
     this.scene = scene;
-    this.facing = 0;     // which way a 3D model turns (radians about the vertical)
     this.card = null;
-    this.model = null;
     this.ready = null;
   }
   set(pokemon) {
     this.pokemon = pokemon;
     this.card?.dispose();
-    this.model?.dispose();
-    this.card = this.model = null;
-    this.modelHeight = heightFor(pokemon.img);
-    const model = pokemon.model && MonsterModel.load(pokemon.model, pokemon.aura).then(m => {
-      if (this.pokemon !== pokemon) return m.dispose();   // swapped again while it loaded
-      this.model = m;
-      this.scene.add(m.root);
-    }, err => console.warn('Battle3D: showing the picture, the 3D model did not load:', err.message));
-    const picture = SpriteCard.load(pokemon.img).then(card => {
+    this.card = null;
+    this.ready = SpriteCard.load(pokemon.img).then(card => {
       if (this.pokemon !== pokemon) return card.dispose();
       this.card = card;
       this.scene.add(card.root);
@@ -1063,30 +1051,20 @@ class PokemonActor {
       console.warn('Battle3D: the sprite did not load:', err.message);
       this.worldH = heightFor(pokemon.img); this.drop = 0; this.footprint = this.worldH * 0.8;
     });
-    this.ready = Promise.all([picture, model]);
     return this.ready;
-  }
-  // Play one of a 3D model's clips (Land, Attack, Hit, Faint); a sprite has none.
-  clip(name) {
-    this.model?.play(name);
   }
   update(camera, w, h, tmpA, tmpB, dt) {
     const s = this.scale;
     const out = this.visible && s > 0.001;
-    const shows = !out ? '' : this.model ? 'model' : this.card ? 'sprite' : '';
+    const shows = out && this.card ? 'sprite' : '';
     if (this.layer.dataset['side' + this.side] !== shows) this.layer.dataset['side' + this.side] = shows;   // for dev/play-check.mjs
     if (!out) {
       this.shadow.visible = false;
       if (this.card) this.card.root.visible = false;
-      if (this.model) this.model.root.visible = false;
       return;
     }
     this.clock += dt;
-    const tall = this.model ? this.modelHeight : this.worldH, drop = this.model ? 0 : this.drop;
-    if (this.model) {
-      if (this.card) this.card.root.visible = false;
-      this.model.follow(this, this.modelHeight, dt);
-    } else if (this.card) {
+    if (this.card) {
       // A sprite bounces gently on the spot while it waits.
       const bob = Math.abs(Math.sin(this.clock * 2.6)) * 0.07 * s;
       this.rise += bob;
@@ -1094,9 +1072,9 @@ class PokemonActor {
       this.rise -= bob;
     }
     tmpA.copy(this.pos).add(this.offset);
-    tmpA.y += this.rise - drop * s;
+    tmpA.y += this.rise - this.drop * s;
     tmpB.copy(tmpA);
-    tmpB.y += tall * s;
+    tmpB.y += this.worldH * s;
     tmpA.project(camera);
     tmpB.project(camera);
     const fx = (tmpA.x + 1) / 2 * w, fy = (1 - tmpA.y) / 2 * h, hy = (1 - tmpB.y) / 2 * h;
@@ -1114,7 +1092,6 @@ class PokemonActor {
     this.burst.remove();
     this.shadow.parent?.remove(this.shadow);
     this.card?.dispose();
-    this.model?.dispose();
   }
 }
 
@@ -1289,8 +1266,6 @@ class BattleScene {
         this.trainers[side].root.lookAt(layout[other].spot.x, 0, layout[other].spot.z);
         this.actors[side].pos.copy(layout[side].spot);
         this.racks[side].position.copy(layout[side].trainer).add(new THREE.Vector3(side === 1 ? 0.95 : -0.95, 0, 0.7));
-        // A 3D monster turns three-quarters toward its foe, keeping its face to the camera.
-        this.actors[side].facing = Math.sign(layout[other].spot.x - layout[side].spot.x) * 0.75;
       });
     }
     const pose = layout.camera;
@@ -1467,9 +1442,8 @@ class BattleScene {
         actor.filter = k < 1 ? `brightness(${1 + (1 - k) * 8}) saturate(${k})` : 'none';
       });
       actor.scale = 1; actor.rise = 0; actor.filter = 'none';
-      actor.clip('Land');
       // A sprite lands with a squash and springs back up.
-      if (!actor.model) this.timeline.tween(0.4, k => { actor.squash = 1 - Math.sin(k * Math.PI) * 0.2 * (1 - k); }).then(() => { actor.squash = 1; });
+      this.timeline.tween(0.4, k => { actor.squash = 1 - Math.sin(k * Math.PI) * 0.2 * (1 - k); }).then(() => { actor.squash = 1; });
       this.timeline.tween(0.25, k => { lid.rotation.x = -(1 - k) * 2.1; })
         .then(() => this.timeline.tween(0.35, k => { const s = 1 - k; ball.scale.setScalar(Math.max(s, 0.001)); ball.position.y = r + k * 0.6; }))
         .then(() => { this.scene.remove(ball); });
@@ -1497,7 +1471,6 @@ class BattleScene {
       const actor = this.actors[side];
       if (!actor.visible) return;
       const spot = this.layout[side].spot;
-      actor.clip('Land');
       this.flash(spot, color, 1.5, 0.7);
       this.timeline.tween(0.7, k => { actor.rise = Math.sin(k * Math.PI) * 0.35; actor.filter = `brightness(${1 + Math.sin(k * Math.PI) * 0.8})`; })
         .then(() => { actor.rise = 0; actor.filter = 'none'; });
@@ -1521,7 +1494,6 @@ class BattleScene {
       const actor = this.actors[side];
       if (!actor.visible) return;
       const dir = this.layout[other].spot.clone().sub(this.layout[side].spot).normalize();
-      actor.clip('Attack');
       this.timeline.tween(0.42, k => {
         const lunge = k < 0.4 ? easeOutCubic(k / 0.4) : 1 - easeInOutCubic((k - 0.4) / 0.6);
         actor.offset.copy(dir).multiplyScalar(lunge * 0.9);
@@ -1565,7 +1537,6 @@ class BattleScene {
       b.style.background = `radial-gradient(circle, ${color} 0%, ${color}aa 40%, transparent 70%)`;
       b.style.display = 'block';
       const away = this.layout[side].spot.clone().sub(this.layout[side === 1 ? 2 : 1].spot).normalize();
-      actor.clip('Hit');
       await this.timeline.tween(0.45, k => {
         const f = 1 - k;
         actor.offset.copy(away).multiplyScalar(Math.sin(k * Math.PI) * 0.35 + Math.sin(k * 60) * 0.08 * f);
@@ -1590,12 +1561,11 @@ class BattleScene {
     return this.enqueue(side, async () => {
       const actor = this.actors[side];
       if (!actor.visible) return;
-      actor.clip('Faint');
       const spot = this.layout[side].spot;
       burst(this.fx, spot.clone().add(new THREE.Vector3(0, 0.1, 0)), { color: '#d8ccb8', count: 16, speed: 1.8, life: 0.8, size: 0.55, gravity: 0.8 });
       dizzy(this.fx, spot.clone().add(new THREE.Vector3(0, heightFor(actor.pokemon?.img) * 0.8, 0)));
-      await this.timeline.tween(actor.model ? 1.3 : 0.85, k => {
-        actor.rise = -k * k * (actor.model ? 0.3 : 0.9);
+      await this.timeline.tween(0.85, k => {
+        actor.rise = -k * k * 0.9;
         actor.rot = (actor.mirror ? -1 : 1) * k * 22;
         actor.opacity = 1 - easeInQuad(k);
         actor.filter = `saturate(${1 - k}) brightness(${1 - k * 0.5})`;

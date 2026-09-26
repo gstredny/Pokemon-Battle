@@ -1,7 +1,7 @@
 // Keeps a copy of the game so it still plays with no connection. When online,
 // every file comes from the network first, so a new version shows right away.
 // Bump CACHE_VERSION whenever you change index.html or the artwork.
-const CACHE_VERSION = 'pokemon-battle-v33';
+const CACHE_VERSION = 'pokemon-battle-v34';
 
 const CDN = [
   'https://unpkg.com/react@18/umd/react.production.min.js',

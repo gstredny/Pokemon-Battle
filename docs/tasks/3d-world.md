@@ -130,3 +130,11 @@ Final checks on the finished game:
 - Sizes: jungle 6.80, ocean 5.67, mountains 4.10, volcano 4.55, city 4.42, cave 5.08 MB; monsters 0.37 to 0.83 MB.
 - `curl -s https://gstredny.github.io/Pokemon-Battle/sw.js` shows `const CACHE_VERSION = 'pokemon-battle-v32';`
 - Open: frame rate on a real iPhone is unmeasured (the checks use software rendering). Fixing that needs George's phone.
+
+## Kid monsters back to their pictures (2026-09-26, cache v34)
+George: the 3D kid monsters "don't look good... Don't make them 3D, like it looks terrible. I like how they look in the gallery."
+- The battle now draws each kid monster's own picture as a lit card, the same way it draws real Pokemon (sprite-card.js).
+- Removed: monster3d.js, models/monsters/*.glb, the TripoSR/Blender builder (dev/monsters/), S'more's `aura` (his picture already has the flames).
+- `node --test tests/*.test.js`: 34 tests, 34 pass, 0 fail (the aura test went with the aura).
+- `node dev/play-check.mjs`: PASSED (17 moves, Whalley comes out as his picture). `--no3d`: PASSED (19 moves).
+- All nine photographed in the Jungle with dev/arena-harness.html: each one is its picture, no page errors.

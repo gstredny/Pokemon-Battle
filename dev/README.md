@@ -165,28 +165,6 @@ Things that bit, so they don't again:
 - The exporter re-reads some textures from disk, so shrunk copies are saved as files.
 After a rebuild, list any new file in `assets.json` (`node --test tests/places.test.js` checks).
 
-## Kid monsters in 3D
-
-Each kid monster has a 3D model, `models/monsters/<slug>.glb`, made from George's
-picture on this Mac with no account or upload: TripoSR (MIT licence) turns the
-picture into a shape, then Blender finishes it. From the repo root:
-
-```
-swift tools/lift-subject.swift ~/Downloads/Whalley.png dev/blender/cache/monster-src/whalley-lifted.png
-dev/blender/cache/triposr/.venv/bin/python dev/monsters/shape_from_picture.py whalley   # setup at its top
-blender -b -P dev/monsters/build_monster.py -- whalley
-```
-
-The Blender step removes stray bits, stands the shape up 1 m tall facing the
-camera, simplifies it to 12k triangles, and bakes one texture: TripoSR's colours
-all round, with the picture itself projected onto the front so the face stays
-sharp. A three-bone spine and five clips (Idle, Land, Attack, Hit, Faint, in
-`dev/monsters/monster_rig.py`) animate it, gltfpack packs it, and the build fails
-if a model is over 1 MB or missing a clip. In the battle, `monster3d.js` shows the
-model in place of the picture and plays the clips; the picture stays if the model
-cannot load. A picture with flames or sparks around the monster (S'more) is
-cropped to the body first, or TripoSR bakes the flames into its back.
-
 ## Trainers are Blender models
 
 Each trainer loads `models/trainers/<id>.glb` and swaps it in for its
