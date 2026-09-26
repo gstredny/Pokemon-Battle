@@ -120,3 +120,13 @@ the new CACHE_VERSION.
 ### Showcase
 - dev/showcase.html: tabs for places, monsters, moves and props, driving the real engine; it works sideways and upright (photographed at 844x390 and 390x844, no page errors).
 - Tries that failed: sounds.js fetched sounds/ relative to the page, which 404s from dev/. It now resolves sounds/ beside sounds.js itself.
+
+## Done (2026-09-25, 54afc66, cache v32)
+Final checks on the finished game:
+- `node --test tests/*.test.js`: 35 tests, 35 pass, 0 fail.
+- `node dev/play-check.mjs`: PASSED (19 moves). `node dev/play-check.mjs --no3d`: PASSED (27 moves).
+- `node dev/shoot.mjs <place> ash misty` for all six places: clean, 22 to 78 draw calls, 106k to 158k triangles.
+- All nine monsters photographed in battle and compared with the kids' pictures: every one matches.
+- Sizes: jungle 6.80, ocean 5.67, mountains 4.10, volcano 4.55, city 4.42, cave 5.08 MB; monsters 0.37 to 0.83 MB.
+- `curl -s https://gstredny.github.io/Pokemon-Battle/sw.js` shows `const CACHE_VERSION = 'pokemon-battle-v32';`
+- Open: frame rate on a real iPhone is unmeasured (the checks use software rendering). Fixing that needs George's phone.
