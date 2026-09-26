@@ -75,8 +75,9 @@ styles. Kids' monsters live in `kid-monsters.js`. The 3D battlefield lives in
 `battle3d.js` (arenas, trainers, pokeballs, effects) on top of Three.js in
 `vendor/`. There is no build step and nothing to install. Edit, save, reload.
 
-React and the JSX compiler load from a CDN. `sw.js` caches the whole game on
-first visit so later launches are instant and work offline.
+React and the JSX compiler load from a CDN. `sw.js` saves the whole game in the
+background so it works offline. When online, it always loads the newest files
+first, so a new version shows the next time the game opens.
 
 | File | What it is |
 |---|---|
@@ -102,8 +103,8 @@ first visit so later launches are instant and work offline.
 
 ## After you change anything
 
-Bump `CACHE_VERSION` in `sw.js` (for example `v8` to `v9`). Phones that already
-installed the game keep serving the old cached copy until that value changes.
+Bump `CACHE_VERSION` in `sw.js` (for example `v8` to `v9`). That clears the
+offline copy on phones and saves the new one.
 
 If you add or rename an image, add it to `assets.json` too.
 
