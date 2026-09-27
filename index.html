@@ -72,11 +72,16 @@
   </script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- The 3D battlefield, loaded on its own: if a phone cannot run it, the
-       import fails quietly and the game uses the classic 2D battle. -->
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Start fetching 3D after the first tap; keep the title screen light. -->
   <script type="module">
-    import('./battle3d.js').catch(function (err) { console.warn('3D battlefield unavailable:', err); });
+    window.loadBattle3D = function () {
+      if (!window.battle3dLoad) window.battle3dLoad = import('./battle3d.js').then(function () { return true; }, function (err) {
+        console.warn('3D battlefield unavailable:', err);
+        return false;
+      });
+      return window.battle3dLoad;
+    };
   </script>
 </head>
 <body>
@@ -1784,6 +1789,7 @@ function PokemonBattle() {
   const [use3D, setUse3D] = useState(false);
   const [scene3d, setScene3d] = useState(null);
   const [busy3D, setBusy3D] = useState(0);
+  const [loadingBattle, setLoadingBattle] = useState(false);
   const scene3dRef = useRef(null);
   scene3dRef.current = scene3d;
   
@@ -1836,7 +1842,12 @@ function PokemonBattle() {
   }, [scene3d, p1Key, p2Key]);
   useEffect(() => { if (scene3d && attackAnim) scene3d.attack(attackAnim.side === 'left' ? 1 : 2, attackAnim.type, attackAnim.kind, attackAnim.result); }, [scene3d, attackAnim]);
   useEffect(() => { if (scene3d && flashTarget) scene3d.hit(flashTarget); }, [scene3d, flashTarget]);
-  useEffect(() => { if (scene3d && faintingPokemon) scene3d.faint(faintingPokemon); }, [scene3d, faintingPokemon]);
+  useEffect(() => {
+    if (scene3d && faintingPokemon) {
+      if (faintingPokemon & 1) scene3d.faint(1);
+      if (faintingPokemon & 2) scene3d.faint(2);
+    }
+  }, [scene3d, faintingPokemon]);
   // The pokeballs by each trainer go dark as their Pokemon faint.
   useEffect(() => {
     if (!scene3d || !player1HP.length) return;
@@ -1897,7 +1908,13 @@ function PokemonBattle() {
     else setPlayer2Team([...player2Team, pokemon]);
   };
 
-  const startBattle = () => { playSound('vs'); setShowVS(true); };
+  const startBattle = async () => {
+    setLoadingBattle(true);
+    const loaded = await window.loadBattle3D();
+    setUse3D(loaded && can3D());
+    setLoadingBattle(false);
+    playSound('vs'); setShowVS(true);
+  };
   const onVSComplete = () => { setShowVS(false); setPlayer1HP(player1Team.map(p => p.hp)); setPlayer2HP(player2Team.map(p => p.hp)); setPhase('battle'); setMessage(`Battle Start! ${trainer1.name}'s turn!`); };
 
   const handleSwitch = (newIndex) => {
@@ -2115,41 +2132,26 @@ function PokemonBattle() {
       if (attack.effect && attack.effectChance && Math.random() * 100 < attack.effectChance && !defenderStatusArr[defenderActive]) { defenderStatusArr[defenderActive] = attack.effect; setDefenderStatus(defenderStatusArr); setTimeout(() => addFloatingText(`${STATUS_DATA[attack.effect].icon}`, STATUS_DATA[attack.effect].color, false, defenderSide), 700); }
 
       setTimeout(() => {
-        if (attack.selfDestruct && attackerHP[attackerActive] <= 0) {
-          playSound('faint'); setFaintingPokemon(isP1 ? 1 : 2);
+        const attackerFainted = attackerHP[attackerActive] <= 0;
+        const defenderFainted = defenderHP[defenderActive] <= 0;
+        if (attackerFainted || defenderFainted) {
+          playSound('faint');
+          setFaintingPokemon((attackerFainted ? (isP1 ? 1 : 2) : 0) | (defenderFainted ? (isP1 ? 2 : 1) : 0));
+          if (defenderFainted) {
+            addFloatingText('K.O.!', '#FF4444', true, defenderSide);
+            setScreenFlash('#00000088'); setTimeout(() => setScreenFlash(null), 400);
+          }
           setTimeout(() => {
             setFaintingPokemon(null);
-            const nextAlive = attackerHP.findIndex((hp) => hp > 0);
-            const defenderAlive = defenderHP.findIndex((hp) => hp > 0);
-            if (nextAlive === -1 && defenderAlive === -1) { endBattle(0); return; }
-            else if (nextAlive === -1) { endBattle(isP1 ? 2 : 1); return; }
-            else { if (isP1) setPlayer1Active(nextAlive); else setPlayer2Active(nextAlive); setMessage(`Go, ${(isP1 ? player1Team : player2Team)[nextAlive].name}!`); }
-          }, 800);
-        }
-        
-        if (defenderHP[defenderActive] <= 0) {
-          playSound('faint'); setFaintingPokemon(isP1 ? 2 : 1);
-          addFloatingText('K.O.!', '#FF4444', true, defenderSide);
-          setScreenFlash('#00000088'); setTimeout(() => setScreenFlash(null), 400);
-          setTimeout(() => {
-            setFaintingPokemon(null);
-            const nextAlive = defenderHP.findIndex((hp) => hp > 0);
-            if (nextAlive === -1) { endBattle(turn); return; }
-            else { setDefenderActive(nextAlive); setMessage(`Go, ${defenderTeam[nextAlive].name}!`); }
-            finishTurn();
+            const nextAttacker = attackerHP.findIndex(hp => hp > 0);
+            const nextDefender = defenderHP.findIndex(hp => hp > 0);
+            if (nextAttacker === -1 && nextDefender === -1) { endBattle(0); return; }
+            if (nextAttacker === -1) { endBattle(isP1 ? 2 : 1); return; }
+            if (nextDefender === -1) { endBattle(turn); return; }
+            if (attackerFainted) { if (isP1) setPlayer1Active(nextAttacker); else setPlayer2Active(nextAttacker); }
+            if (defenderFainted) setDefenderActive(nextDefender);
+            switchTurn();
           }, 1000);
-          return;
-        }
-        
-        if (attack.recoil && attackerHP[attackerActive] <= 0) {
-          playSound('faint'); setFaintingPokemon(isP1 ? 1 : 2);
-          setTimeout(() => {
-            setFaintingPokemon(null);
-            const nextAlive = attackerHP.findIndex((hp) => hp > 0);
-            if (nextAlive === -1) { endBattle(isP1 ? 2 : 1); return; }
-            else { if (isP1) setPlayer1Active(nextAlive); else setPlayer2Active(nextAlive); setMessage(`Go, ${(isP1 ? player1Team : player2Team)[nextAlive].name}!`); }
-            finishTurn();
-          }, 800);
           return;
         }
         
@@ -2158,11 +2160,11 @@ function PokemonBattle() {
     }, 500);
 
     function finishTurn() {
-      const curHP = isP1 ? [...player2HP] : [...player1HP];
-      const curStatus = isP1 ? player2Status[player2Active] : player1Status[player1Active];
-      const curActive = isP1 ? player2Active : player1Active;
-      const curPokemon = isP1 ? player2Team[player2Active] : player1Team[player1Active];
-      const setCurHP = isP1 ? setPlayer2HP : setPlayer1HP;
+      const curHP = [...defenderHP];
+      const curStatus = defenderStatusArr[defenderActive];
+      const curActive = defenderActive;
+      const curPokemon = defender;
+      const setCurHP = setDefenderHP;
       
       if ((curStatus === 'burn' || curStatus === 'poison') && curHP[curActive] > 0) {
         const statusDmg = Math.floor(curPokemon.hp / 8);
@@ -2193,7 +2195,7 @@ function PokemonBattle() {
 
   if (showVS) return <VSScreen team1={player1Team} team2={player2Team} trainer1={trainer1} trainer2={trainer2} onComplete={onVSComplete} />;
 
-  if (phase === 'title') return <TitleScreen onPlay={() => { playSound('select'); setPhase('trainer1'); }} playSound={playSound} playAttackSound={playAttackSound} />;
+  if (phase === 'title') return <TitleScreen onPlay={() => { playSound('select'); window.loadBattle3D(); setPhase('trainer1'); }} playSound={playSound} playAttackSound={playAttackSound} />;
 
   // Trainer selection screens
   if (phase === 'trainer1' || phase === 'trainer2') {
@@ -2326,12 +2328,12 @@ function PokemonBattle() {
             })}
           </div>
           {scene && (
-            <button onClick={() => { setUse3D(can3D()); startBattle(); }} style={{
+            <button disabled={loadingBattle} onClick={startBattle} style={{
               marginTop: '12px', padding: '10px 30px', fontSize: '16px', fontWeight: 'bold',
               background: 'linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%)', color: 'white',
               border: '2px solid #81C784', borderRadius: '10px', cursor: 'pointer'
             }}>
-              ⚔️ BATTLE!
+              {loadingBattle ? 'Loading battlefield...' : '⚔️ BATTLE!'}
             </button>
           )}
         </div>
@@ -2400,7 +2402,7 @@ function PokemonBattle() {
               {turn === 2 && <span style={{ animation: 'pulse 1s infinite' }}>◀</span>}
             </div>
             <TeamIndicator team={player2Team} hpArray={player2HP} activeIndex={player2Active} statuses={player2Status} canSwitch={turn === 2 && !animating} onSwitch={handleSwitch} />
-            <BattlePokemon pokemon={p2Pokemon} hp={player2HP[player2Active]} maxHp={p2Pokemon.hp} status={player2Status[player2Active]} statBoosts={player2Boosts[player2Active]} shaking={shakeTarget === 2} flashing={flashTarget === 2} fainting={faintingPokemon === 2} isActive={turn === 2} />
+            <BattlePokemon pokemon={p2Pokemon} hp={player2HP[player2Active]} maxHp={p2Pokemon.hp} status={player2Status[player2Active]} statBoosts={player2Boosts[player2Active]} shaking={shakeTarget === 2} flashing={flashTarget === 2} fainting={!!(faintingPokemon & 2)} isActive={turn === 2} />
           </div>
 
           {/* Player 1 */}
@@ -2411,7 +2413,7 @@ function PokemonBattle() {
               <span style={{ color: trainer1.color }}>{trainer1.name}</span>
             </div>
             <TeamIndicator team={player1Team} hpArray={player1HP} activeIndex={player1Active} statuses={player1Status} canSwitch={turn === 1 && !animating} onSwitch={handleSwitch} />
-            <BattlePokemon pokemon={p1Pokemon} hp={player1HP[player1Active]} maxHp={p1Pokemon.hp} status={player1Status[player1Active]} statBoosts={player1Boosts[player1Active]} shaking={shakeTarget === 1} flashing={flashTarget === 1} fainting={faintingPokemon === 1} isActive={turn === 1} />
+            <BattlePokemon pokemon={p1Pokemon} hp={player1HP[player1Active]} maxHp={p1Pokemon.hp} status={player1Status[player1Active]} statBoosts={player1Boosts[player1Active]} shaking={shakeTarget === 1} flashing={flashTarget === 1} fainting={!!(faintingPokemon & 1)} isActive={turn === 1} />
           </div>
 
           {/* Moves for whoever's turn it is */}
