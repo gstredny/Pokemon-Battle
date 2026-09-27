@@ -1,7 +1,7 @@
 // Keeps a copy of the game so it still plays with no connection. When online,
 // every file comes from the network first, so a new version shows right away.
 // Bump CACHE_VERSION whenever you change index.html or the artwork.
-const CACHE_VERSION = 'pokemon-battle-v34';
+const CACHE_VERSION = 'pokemon-battle-v35';
 
 const CDN = [
   'https://unpkg.com/react@18/umd/react.production.min.js',
@@ -24,17 +24,17 @@ self.addEventListener('activate', event => {
 
 async function saveWholeGame() {
   const cache = await caches.open(CACHE_VERSION);
+  // Save the libraries needed to boot before the optional artwork and places.
+  for (const url of CDN) {
+    if (await cache.match(url)) continue;
+    await cache.add(new Request(url, { mode: 'cors' })).catch(() => {});
+  }
   const local = await fetch('assets.json', { cache: 'reload' }).then(r => r.json()).catch(() => []);
   // One file at a time, skipping any already saved, so a slow phone keeps its
   // connection for the game and a failure only skips that one file.
   for (const url of local) {
     if (await cache.match(url)) continue;
     await cache.add(new Request(url, { cache: 'reload' })).catch(() => {});
-  }
-  // CDN files are opaque cross-origin responses.
-  for (const url of CDN) {
-    if (await cache.match(url)) continue;
-    await cache.add(new Request(url, { mode: 'no-cors' })).catch(() => {});
   }
 }
 
@@ -49,7 +49,8 @@ self.addEventListener('fetch', event => {
       }
       return res;
     } catch (err) {
-      const hit = await caches.match(event.request) || await caches.match('index.html');
+      const hit = await caches.match(event.request) ||
+        (event.request.mode === 'navigate' ? await caches.match('index.html') : null);
       if (hit) return hit;
       throw err;
     }
