@@ -992,6 +992,7 @@ const DEX_HEIGHT = {
   rhydon: 1.9, scyther: 1.5, snorlax: 2.1, tauros: 1.4, vaporeon: 1.0, venusaur: 2.0, zapdos: 1.6,
   // The kids' monsters, sized from what the kids said about them ("he's big", "like a Pikachu").
   swortos: 1.5, legtro: 1.7, mega: 2.0, froggy: 0.8, allymon: 0.6, smore: 0.7, whalley: 2.2, grassmic: 1.2, alltrik: 1.2,
+  stormie: 0.6, 'baby-bella': 0.5, molly: 1.0, roxion: 1.3, rion: 1.5, rootbert: 1.1,
 };
 const MIN_HEIGHT = 0.5, MAX_HEIGHT = 3.5, UNKNOWN_HEIGHT = 1.2;
 const SIZE_SCALE = 2.2, KNEE = 3.4, ABOVE_KNEE = 0.35, FIT_WIDTH = 3.6;

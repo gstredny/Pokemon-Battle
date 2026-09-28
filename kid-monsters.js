@@ -109,4 +109,68 @@ globalThis.KID_CARDS = [
       saveMe: { name: 'Supercharge', does: 'stronger' },
     },
   },
+  // The family's second batch, from pictures, with only a type each: "I give you
+  // the freedom to create their health points and powers." Names are spelled
+  // the way the pictures spell them.
+  // "Stormy is a flying Pokemon." A small, happy bird: very fast.
+  {
+    slug: 'stormie', name: 'Stormie', madeBy: 'Family', type: 'flying', cry: 'bird',
+    stats: { hp: 95, atk: 110, def: 60, spd: 160 },
+    powers: {
+      bigHit: 'Storm Dive', fastHit: 'Wing Flap',
+      trick: { name: 'Thunder Tweet', does: 'zap' },
+      saveMe: { name: 'Feather Fluff', does: 'tougher' },
+    },
+  },
+  // "Baby Bella is a bug Pokemon." A long, knotted worm: lots of health, not fast.
+  {
+    slug: 'baby-bella', name: 'Baby Bella', madeBy: 'Family', type: 'bug', cry: 'bug',
+    stats: { hp: 160, atk: 95, def: 80, spd: 90 },
+    powers: {
+      bigHit: 'Wiggle Slam', fastHit: 'Squiggle Poke',
+      trick: { name: 'Knot Wrap', does: 'zap' },
+      saveMe: { name: 'Mud Nap', does: 'heal' },
+    },
+  },
+  // "Molly is a poison Pokemon." A dark jelly with red fins: strong and quick.
+  {
+    slug: 'molly', name: 'Molly', madeBy: 'Family', type: 'poison', cry: 'ghost',
+    stats: { hp: 115, atk: 120, def: 85, spd: 105 },
+    powers: {
+      bigHit: 'Venom Splash', fastHit: 'Goo Flick',
+      trick: { name: 'Poison Fins', does: 'poison' },
+      saveMe: { name: 'Jelly Shield', does: 'tougher' },
+    },
+  },
+  // "Roxion is a rock Pokemon." A crystal in a rock frame: very tough, very slow.
+  {
+    slug: 'roxion', name: 'Roxion', madeBy: 'Family', type: 'rock', cry: 'rock',
+    stats: { hp: 150, atk: 105, def: 135, spd: 35 },
+    powers: {
+      bigHit: 'Crystal Crash', fastHit: 'Pebble Shot',
+      trick: { name: 'Gem Glare', does: 'zap' },
+      saveMe: { name: 'Spike Up', does: 'stronger' },
+    },
+  },
+  // "Rion is a ghost Pokemon." A pink flame spirit: hits hard, fast, fragile.
+  {
+    slug: 'rion', name: 'Rion', madeBy: 'Family', type: 'ghost', cry: 'ghost',
+    stats: { hp: 100, atk: 125, def: 60, spd: 140 },
+    powers: {
+      bigHit: 'Spirit Flame', fastHit: 'Spooky Swipe',
+      trick: { name: 'Rainbow Fire', does: 'burn' },
+      saveMe: { name: 'Vanish', does: 'faster' },
+    },
+  },
+  // "Rupert is a ground Pokemon." (The picture says Rootbert.) A root of dirt:
+  // strong and sturdy, slow.
+  {
+    slug: 'rootbert', name: 'Rootbert', madeBy: 'Family', type: 'ground', cry: 'plant',
+    stats: { hp: 145, atk: 125, def: 110, spd: 45 },
+    powers: {
+      bigHit: 'Mud Quake', fastHit: 'Dirt Toss',
+      trick: { name: 'Root Grab', does: 'zap' },
+      saveMe: { name: 'Sprout Snack', does: 'heal' },
+    },
+  },
 ];
