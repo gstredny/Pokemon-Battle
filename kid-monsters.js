@@ -173,4 +173,15 @@ globalThis.KID_CARDS = [
       saveMe: { name: 'Sprout Snack', does: 'heal' },
     },
   },
+  // "It's a poison Pokemon, its name is Poisman." A gem in a ring of slime with
+  // ten wiggly arms: sturdy and steady, middle speed.
+  {
+    slug: 'poisman', name: 'Poisman', madeBy: 'Family', type: 'poison', cry: 'ghost',
+    stats: { hp: 125, atk: 110, def: 100, spd: 90 },
+    powers: {
+      bigHit: 'Toxic Tentacles', fastHit: 'Slime Slap',
+      trick: { name: 'Poison Goo', does: 'poison' },
+      saveMe: { name: 'Gem Guard', does: 'tougher' },
+    },
+  },
 ];
