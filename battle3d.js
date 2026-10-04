@@ -1149,8 +1149,9 @@ const LAYOUTS = {
 const LANDSCAPE_ASPECT = 2.1; // the width/height the landscape camera pose is framed for
 
 class BattleScene {
-  // insetLeft: pixels the game's buttons cover at the left edge when sideways.
-  constructor({ container, arena, trainers, seed = 1, insetLeft = 0 }) {
+  // insetLeft: how many pixels the game's buttons cover at the left edge when
+  // sideways. Asked again each time the phone turns.
+  constructor({ container, arena, trainers, seed = 1, insetLeft = () => 0 }) {
     if (!ARENAS[arena]) throw new Error(`Unknown arena "${arena}"`);
     this.container = container;
     this.insetLeft = insetLeft;
@@ -1253,7 +1254,7 @@ class BattleScene {
     this.renderer.setSize(w, h, false);
     // Sideways, the battle is framed in the open area right of the buttons
     // (fw wide), and the scenery carries on behind the buttons.
-    const inset = w > h ? Math.min(this.insetLeft, w * 0.4) : 0;
+    const inset = w > h ? Math.min(this.insetLeft(), w * 0.4) : 0;
     const fw = w - inset;
     this.camera.aspect = fw / h;
     if (inset) this.camera.setViewOffset(fw, h, -inset, 0, w, h);

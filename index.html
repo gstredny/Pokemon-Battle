@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Pokemon Battle</title>
 
   <!-- PWA Meta Tags -->
@@ -25,6 +25,9 @@
       overscroll-behavior: none;
       background: #1a1a2e;
     }
+    /* The game fills the whole phone, under the camera bump and the home bar too.
+       Each screen keeps its words and buttons inside the safe part. */
+    #root > div { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
     #root {
       height: 100dvh;
       height: var(--vh, 100vh);
@@ -1227,7 +1230,7 @@ const FullscreenButton = () => {
         style={{
           position: "fixed",
           top: "10px",
-          right: "10px",
+          right: "calc(10px + env(safe-area-inset-right))",
           width: "40px",
           height: "40px",
           background: "rgba(0, 0, 0, 0.6)",
@@ -1310,7 +1313,7 @@ const BackButton = ({ onClick }) => (
     style={{
       position: "fixed",
       top: "10px",
-      left: "10px",
+      left: "calc(10px + env(safe-area-inset-left))",
       width: "56px",
       height: "56px",
       background: "rgba(0, 0, 0, 0.6)",
@@ -1462,7 +1465,7 @@ const MuteButton = () => {
   const toggle = () => { Music.setMuted(!muted); setMuted(!muted); };
   return (
     <button onClick={toggle} title={muted ? 'Sound on' : 'Sound off'} style={{
-      position: 'fixed', top: '10px', right: '58px', width: '40px', height: '40px',
+      position: 'fixed', top: '10px', right: 'calc(58px + env(safe-area-inset-right))', width: '40px', height: '40px',
       background: 'rgba(0, 0, 0, 0.6)', border: '2px solid rgba(255, 255, 255, 0.3)', borderRadius: '8px',
       color: 'white', fontSize: '20px', cursor: 'pointer', zIndex: 9999,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1697,12 +1700,21 @@ const can3D = () => {
 // hands the scene up through onReady, or reports onError so the game can fall
 // back to the classic battle.
 const MOVES_PANEL_WIDTH = 250; // the move buttons floating at the left of the 3D battle
+// How far the phone's camera bump reaches in from the left edge (0 on phones without one).
+const safeLeft = () => {
+  const probe = document.createElement('div');
+  probe.style.paddingLeft = 'env(safe-area-inset-left)';
+  document.body.appendChild(probe);
+  const px = parseFloat(getComputedStyle(probe).paddingLeft) || 0;
+  probe.remove();
+  return px;
+};
 const Battle3DStage = ({ arena, trainers, onReady, onError }) => {
   const ref = useRef(null);
   useEffect(() => {
     let scene = null;
     try {
-      scene = window.Battle3D.create({ container: ref.current, arena, trainers, insetLeft: MOVES_PANEL_WIDTH + 12 });
+      scene = window.Battle3D.create({ container: ref.current, arena, trainers, insetLeft: () => safeLeft() + MOVES_PANEL_WIDTH + 12 });
       scene.onError = onError;
       onReady(scene);
     } catch (err) {
@@ -2357,12 +2369,12 @@ function PokemonBattle() {
         {screenFlash && <ScreenFlash color={screenFlash} />}
         <div style={{ position: 'absolute', inset: 0 }}>
           <Battle3DStage arena={scene.id} trainers={[trainer1.id, trainer2.id]} onReady={setScene3d} onError={() => { setScene3d(null); setUse3D(false); }} />
-          <HudCard trainer={trainer2} team={player2Team} hpArray={player2HP} activeIndex={player2Active} statuses={player2Status} boosts={player2Boosts} isTurn={turn === 2} canSwitch={turn === 2 && !locked} onSwitch={handleSwitch} style={{ top: '6px', left: '6px' }} />
-          <HudCard trainer={trainer1} team={player1Team} hpArray={player1HP} activeIndex={player1Active} statuses={player1Status} boosts={player1Boosts} isTurn={turn === 1} canSwitch={turn === 1 && !locked} onSwitch={handleSwitch} style={{ bottom: '6px', right: '6px' }} />
+          <HudCard trainer={trainer2} team={player2Team} hpArray={player2HP} activeIndex={player2Active} statuses={player2Status} boosts={player2Boosts} isTurn={turn === 2} canSwitch={turn === 2 && !locked} onSwitch={handleSwitch} style={{ top: '6px', left: 'calc(6px + env(safe-area-inset-left))' }} />
+          <HudCard trainer={trainer1} team={player1Team} hpArray={player1HP} activeIndex={player1Active} statuses={player1Status} boosts={player1Boosts} isTurn={turn === 1} canSwitch={turn === 1 && !locked} onSwitch={handleSwitch} style={{ bottom: 'calc(6px + env(safe-area-inset-bottom))', right: 'calc(6px + env(safe-area-inset-right))' }} />
           {floatingTexts.map(ft => <FloatingText key={ft.id} text={ft.text} color={ft.color} large={ft.large} x={ft.x} y={ft.y} />)}
         </div>
         <div style={{ position: 'absolute', zIndex: 3, top: '8px', left: '50%', transform: 'translateX(-50%)', maxWidth: '42%', textAlign: 'center', padding: '3px 12px', borderRadius: '14px', background: 'rgba(0,0,0,0.6)', color: currentTrainer.color, fontSize: '15px', fontWeight: 'bold', textShadow: '0 1px 2px #000' }}>{message}</div>
-        <div style={{ position: 'absolute', zIndex: 3, left: '6px', top: '50%', transform: 'translateY(-38%)', width: `${MOVES_PANEL_WIDTH}px`, background: 'rgba(0,0,0,0.45)', borderRadius: '10px', padding: '5px', border: `2px solid ${currentTrainer.color}` }}>
+        <div style={{ position: 'absolute', zIndex: 3, left: 'calc(6px + env(safe-area-inset-left))', top: '50%', transform: 'translateY(-38%)', width: `${MOVES_PANEL_WIDTH}px`, background: 'rgba(0,0,0,0.45)', borderRadius: '10px', padding: '5px', border: `2px solid ${currentTrainer.color}` }}>
           <div style={{ fontSize: '13px', color: '#FFD700', marginBottom: '3px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', textShadow: '0 1px 2px #000' }}>
             <img src={currentPokemon.img} alt={currentPokemon.name} style={{ width: '24px', height: '24px' }} />
             {currentTrainer.name}'s {currentPokemon.name}
