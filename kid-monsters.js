@@ -184,4 +184,15 @@ globalThis.KID_CARDS = [
       saveMe: { name: 'Gem Guard', does: 'tougher' },
     },
   },
+  // "It's a ghost Pokemon and its name is Nomon." A smiling yellow ghost trailing
+  // rainbow ribbons: floaty and quick, soft to hit.
+  {
+    slug: 'nomon', name: 'Nomon', madeBy: 'Family', type: 'ghost', cry: 'ghost',
+    stats: { hp: 115, atk: 100, def: 80, spd: 130 },
+    powers: {
+      bigHit: 'Rainbow Ribbons', fastHit: 'Ribbon Whip',
+      trick: { name: 'Rainbow Dream', does: 'sleep' },
+      saveMe: { name: 'Ribbon Wrap', does: 'heal' },
+    },
+  },
 ];
