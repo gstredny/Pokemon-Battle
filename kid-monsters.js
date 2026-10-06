@@ -195,4 +195,15 @@ globalThis.KID_CARDS = [
       saveMe: { name: 'Ribbon Wrap', does: 'heal' },
     },
   },
+  // "This is a water Pokemon, and its name is Tunie." A chunky glossy fish with a
+  // red spiky crest: solid all round, a good swimmer.
+  {
+    slug: 'tunie', name: 'Tunie', madeBy: 'Family', type: 'water', cry: 'whale',
+    stats: { hp: 120, atk: 105, def: 95, spd: 105 },
+    powers: {
+      bigHit: 'Tuna Torpedo', fastHit: 'Fin Splash',
+      trick: { name: 'Chilly Wave', does: 'freeze' },
+      saveMe: { name: 'Bubble Bath', does: 'heal' },
+    },
+  },
 ];
