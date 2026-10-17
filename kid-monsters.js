@@ -206,4 +206,27 @@ globalThis.KID_CARDS = [
       saveMe: { name: 'Bubble Bath', does: 'heal' },
     },
   },
+  // "The fire Pokemon's name is Fidon." A chunky lava bear with big glassy red
+  // eyes and flames on its arms: strong and sturdy, not very fast.
+  {
+    slug: 'fidon', name: 'Fidon', madeBy: 'Family', type: 'fire', cry: 'beast',
+    stats: { hp: 130, atk: 125, def: 95, spd: 75 },
+    powers: {
+      bigHit: 'Lava Hug', fastHit: 'Ember Flick',
+      trick: { name: 'Blazing Stare', does: 'burn' },
+      saveMe: { name: 'Stoke the Fire', does: 'stronger' },
+    },
+  },
+  // "The blue one is obviously a ghost Pokemon ... ghost Pokemon name is Ice."
+  // A see-through icy sheet with three little eyes and pink edges: floaty and
+  // fast, soft to hit.
+  {
+    slug: 'ice', name: 'Ice', madeBy: 'Family', type: 'ghost', cry: 'ghost',
+    stats: { hp: 110, atk: 105, def: 75, spd: 135 },
+    powers: {
+      bigHit: 'Frost Phantom', fastHit: 'Chilly Flap',
+      trick: { name: 'Frozen Stare', does: 'freeze' },
+      saveMe: { name: 'Ice Veil', does: 'tougher' },
+    },
+  },
 ];

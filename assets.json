@@ -55,6 +55,8 @@
   "monsters/poisman.png",
   "monsters/nomon.png",
   "monsters/tunie.png",
+  "monsters/fidon.png",
+  "monsters/ice.png",
   "battle3d.js",
   "models/props/pokeball.glb",
   "models/props/trophy.glb",
